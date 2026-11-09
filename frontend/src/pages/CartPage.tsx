@@ -20,20 +20,20 @@ function CartRow({ line }: { line: CartLine }) {
 
   return (
     <li className="flex gap-4 py-4">
-      <Link to={`/prodotti/${product.id}`} className="w-20 shrink-0 sm:w-24">
+      <Link to={`/prodotti/${product.slug}`} className="w-20 shrink-0 sm:w-24">
         <ProductImage name={product.name} imageUrl={product.image_url} categorySlug={product.category_slug} />
       </Link>
 
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <div className="flex justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs tracking-wide text-muted-foreground uppercase">{product.brand}</p>
-            <Link to={`/prodotti/${product.id}`} className="font-medium hover:underline">
+            <p className="text-silk text-muted-foreground">{product.brand}</p>
+            <Link to={`/prodotti/${product.slug}`} className="font-medium hover:underline">
               {product.name}
             </Link>
-            <p className="text-sm text-muted-foreground">{formatPrice(product.price)} cad.</p>
+            <p className="text-sm text-muted-foreground">{formatPrice(product.price)}</p>
           </div>
-          <p className="shrink-0 font-semibold">{formatPrice(lineTotal)}</p>
+          <p className="shrink-0 font-mono font-medium tabular-nums">{formatPrice(lineTotal)}</p>
         </div>
 
         <div className="flex items-center justify-between gap-3">
@@ -83,10 +83,10 @@ export function CartPage() {
   return (
     <div className="flex flex-col gap-6">
       <title>Carrello — Sonora</title>
-      <h1 className="text-2xl font-semibold tracking-tight">Carrello</h1>
+      <h1 className="text-display text-6xl md:text-8xl">Carrello</h1>
 
       {count === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed p-10 text-center">
+        <div className="flex flex-col items-center gap-3 border border-dashed p-10 text-center">
           <ShoppingCart className="size-8 text-muted-foreground" strokeWidth={1.5} aria-hidden />
           <p className="font-medium">Il carrello è vuoto.</p>
           <Button variant="outline" nativeButton={false} render={<Link to="/catalogo" />}>
@@ -108,9 +108,9 @@ export function CartPage() {
             ))}
           </ul>
 
-          <Card>
+          <Card className="panel lg:sticky lg:top-24">
             <CardContent className="flex flex-col gap-4">
-              <h2 className="font-semibold">Riepilogo</h2>
+              <h2 className="text-display text-3xl">Riepilogo</h2>
               <OrderTotals total={total} />
               {hasStockProblems ? (
                 <Button size="lg" disabled>

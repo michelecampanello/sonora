@@ -1,13 +1,14 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { useFetch } from "@/hooks/useFetch";
 import { productsByIdPath } from "@/lib/api";
+import { isUuid } from "@/lib/utils";
 import type { Paginated, ProductSummary } from "@/lib/types";
 
 export const MAX_QUANTITY = 99;
 const STORAGE_KEY = "sonora.cart";
 
 export interface CartItem {
-  productId: number;
+  productId: string;
   quantity: number;
 }
 
@@ -22,7 +23,7 @@ const isValidQuantity = (n: unknown): n is number =>
 function isCartItem(value: unknown): value is CartItem {
   if (typeof value !== "object" || value === null) return false;
   const { productId, quantity } = value as Record<string, unknown>;
-  return typeof productId === "number" && Number.isInteger(productId) && productId > 0 && isValidQuantity(quantity);
+  return isUuid(productId) && isValidQuantity(quantity);
 }
 
 function readStorage(): CartItem[] {
@@ -65,7 +66,7 @@ function subscribe(listener: () => void) {
   return () => listeners.delete(listener);
 }
 
-export function addToCart(productId: number, stock: number) {
+export function addToCart(productId: string, stock: number) {
   const limit = Math.min(stock, MAX_QUANTITY);
   const existing = cartItems.find((item) => item.productId === productId);
   if ((existing?.quantity ?? 0) >= limit) return;
@@ -76,12 +77,12 @@ export function addToCart(productId: number, stock: number) {
   );
 }
 
-export function setCartQuantity(productId: number, quantity: number) {
+export function setCartQuantity(productId: string, quantity: number) {
   if (!isValidQuantity(quantity)) return;
   save(cartItems.map((item) => (item.productId === productId ? { ...item, quantity } : item)));
 }
 
-export function removeFromCart(productId: number) {
+export function removeFromCart(productId: string) {
   save(cartItems.filter((item) => item.productId !== productId));
 }
 
@@ -98,7 +99,7 @@ export function useCart() {
 export function useCartLines() {
   const { items, count } = useCart();
   // Id ordinati: cambiare una quantità non deve far ripartire la richiesta
-  const ids = items.map((item) => item.productId).sort((a, b) => a - b);
+  const ids = items.map((item) => item.productId).sort();
   const { data, previousData, error } = useFetch<Paginated<ProductSummary>>(
     ids.length > 0 ? productsByIdPath(ids) : null
   );
@@ -118,7 +119,7 @@ export function useCartLines() {
   const missingKey = missing.map((item) => item.productId).join(",");
   useEffect(() => {
     if (!missingKey) return;
-    missingKey.split(",").forEach((id) => removeFromCart(Number(id)));
+    missingKey.split(",").forEach(removeFromCart);
   }, [missingKey]);
 
   const totalCents = lines.reduce(

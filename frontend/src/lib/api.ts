@@ -62,8 +62,8 @@ export function productsPath(filters: CatalogFilters): string {
 }
 
 export const featuredProductsPath = "/api/products?featured=true&inStock=true&limit=6";
-export const productsByIdPath = (ids: number[]) => `/api/products?ids=${ids.join(",")}&limit=50`;
+export const productsByIdPath = (ids: string[]) => `/api/products?ids=${ids.join(",")}&limit=50`;
 export const ordersPath = "/api/orders";
-export const productPath = (id: number | string) => `/api/products/${id}`;
+export const productPath = (slug: string) => `/api/products/${encodeURIComponent(slug)}`;
 export const categoriesPath = "/api/categories";
 export const brandsPath = "/api/brands";

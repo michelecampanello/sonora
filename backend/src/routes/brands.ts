@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { pool } from "../db.js";
 import { asyncHandler } from "../asyncHandler.js";
+import { isSlug } from "../slug.js";
 import type { ApiError, Brand, ProductSummary } from "../types.js";
 import { PRODUCT_COLUMNS, PRODUCT_JOINS } from "./products.js";
 
@@ -11,7 +12,7 @@ router.get(
   "/",
   asyncHandler<{}, Brand[], unknown, unknown>(async (_req, res) => {
     const { rows } = await pool.query<Brand>(
-      "SELECT id, name FROM brands ORDER BY name",
+      "SELECT id, slug, name FROM brands ORDER BY name",
     );
     res.json(rows);
   }),
@@ -22,21 +23,21 @@ interface BrandProducts {
   items: ProductSummary[];
 }
 
-/** GET /api/brands/:id/products — prodotti di una marca */
+/** GET /api/brands/:slug/products — prodotti di una marca */
 router.get(
-  "/:id/products",
-  asyncHandler<{ id: string }, BrandProducts | ApiError, unknown, unknown>(
+  "/:slug/products",
+  asyncHandler<{ slug: string }, BrandProducts | ApiError, unknown, unknown>(
     async (req, res) => {
-      // 1. Validazione dell'id
-      const id = Number(req.params.id);
-      if (!Number.isInteger(id) || id <= 0) {
-        return res.status(400).json({ error: "Id non valido" });
+      // 1. Validazione dello slug
+      const { slug } = req.params;
+      if (!isSlug(slug)) {
+        return res.status(404).json({ error: "Marca non trovata" });
       }
 
       // 2. La marca esiste?
       const brandResult = await pool.query<Brand>(
-        "SELECT id, name FROM brands WHERE id = $1",
-        [id],
+        "SELECT id, slug, name FROM brands WHERE slug = $1",
+        [slug],
       );
       const brand = brandResult.rows[0];
       if (!brand) {
@@ -49,7 +50,7 @@ router.get(
        ${PRODUCT_JOINS}
        WHERE p.brand_id = $1 AND p.active
        ORDER BY p.name`,
-        [id],
+        [brand.id],
       );
 
       return res.json({ brand, items: productsResult.rows });

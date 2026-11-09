@@ -76,12 +76,12 @@ export function CheckoutPage() {
   return (
     <div className="flex flex-col gap-6">
       <title>Checkout — Sonora</title>
-      <h1 className="text-2xl font-semibold tracking-tight">Checkout</h1>
+      <h1 className="text-display text-6xl md:text-8xl">Checkout</h1>
 
       <div className="grid items-start gap-6 lg:grid-cols-[1fr_380px] lg:gap-10">
         <form id="checkout" onSubmit={submit} className="flex flex-col gap-8">
           <section aria-labelledby="contact-title" className="flex flex-col gap-4">
-            <h2 id="contact-title" className="font-semibold">
+            <h2 id="contact-title" className="text-display border-t pt-3 text-3xl">
               Dati di contatto
             </h2>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -91,7 +91,7 @@ export function CheckoutPage() {
           </section>
 
           <section aria-labelledby="shipping-title" className="flex flex-col gap-4">
-            <h2 id="shipping-title" className="font-semibold">
+            <h2 id="shipping-title" className="text-display border-t pt-3 text-3xl">
               Indirizzo di spedizione
             </h2>
             <Field label="Indirizzo" name="address" autoComplete="street-address" minLength={3} maxLength={200} />
@@ -125,8 +125,8 @@ export function CheckoutPage() {
             </div>
           </section>
 
-          <section aria-labelledby="payment-title" className="flex flex-col gap-2">
-            <h2 id="payment-title" className="font-semibold">
+          <section aria-labelledby="payment-title" className="flex flex-col gap-4">
+            <h2 id="payment-title" className="text-display border-t pt-3 text-3xl">
               Pagamento
             </h2>
             <p className="rounded-lg border p-3 text-sm">
@@ -136,9 +136,9 @@ export function CheckoutPage() {
           </section>
         </form>
 
-        <Card>
+        <Card className="panel lg:sticky lg:top-24">
           <CardContent className="flex flex-col gap-4">
-            <h2 className="font-semibold">Il tuo ordine</h2>
+            <h2 className="text-display text-3xl">Il tuo ordine</h2>
             <ul className="flex flex-col gap-2 text-sm">
               {lines.map(({ product, quantity }) => (
                 <li key={product.id} className="flex justify-between gap-3">
@@ -152,7 +152,7 @@ export function CheckoutPage() {
             <OrderTotals total={total} />
 
             {submitError && (
-              <div role="alert" className="text-sm text-destructive">
+              <div role="alert" className="border border-signal p-3 text-sm text-signal">
                 <p>{submitError.message}</p>
                 {submitError.stock && (
                   <Link to="/carrello" className="underline underline-offset-4">

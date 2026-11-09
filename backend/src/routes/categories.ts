@@ -14,7 +14,7 @@ router.get(
   "/",
   asyncHandler<{}, Category[], unknown, unknown>(async (_req, res) => {
     const { rows } = await pool.query<CategoryRow>(
-      "SELECT id, name, slug, description, parent_id FROM categories ORDER BY sort_order, id"
+      "SELECT id, name, slug, description, parent_id FROM categories ORDER BY sort_order, name"
     );
 
     const tree: Category[] = rows

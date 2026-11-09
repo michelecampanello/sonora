@@ -61,10 +61,10 @@ export function CatalogFilters({
   const { data: brands } = useFetch<Brand[]>(brandsPath)
   const [priceOpen, setPriceOpen] = useState(false)
 
-  const toggleBrand = (id: number, checked: boolean) => {
+  const toggleBrand = (slug: string, checked: boolean) => {
     const next = checked
-      ? [...filters.brands, id]
-      : filters.brands.filter((b) => b !== id)
+      ? [...filters.brands, slug]
+      : filters.brands.filter((b) => b !== slug)
     onChange({ brands: next })
   }
 
@@ -97,11 +97,11 @@ export function CatalogFilters({
         ]
       : []),
     ...(brands ?? [])
-      .filter((brand) => filters.brands.includes(brand.id))
+      .filter((brand) => filters.brands.includes(brand.slug))
       .map((brand) => ({
         key: `brand-${brand.id}`,
         label: brand.name,
-        clear: { brands: filters.brands.filter((b) => b !== brand.id) },
+        clear: { brands: filters.brands.filter((b) => b !== brand.slug) },
       })),
     ...(hasPrice
       ? [
@@ -145,9 +145,9 @@ export function CatalogFilters({
                   className="cursor-pointer rounded-md px-2 py-1.5 font-normal hover:bg-muted"
                 >
                   <Checkbox
-                    checked={filters.brands.includes(brand.id)}
+                    checked={filters.brands.includes(brand.slug)}
                     onCheckedChange={(checked) =>
-                      toggleBrand(brand.id, checked)
+                      toggleBrand(brand.slug, checked)
                     }
                   />
                   {brand.name}

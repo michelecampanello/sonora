@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { pool } from "../db.js";
 import { asyncHandler } from "../asyncHandler.js";
+import { isSlug, parseSlugList } from "../slug.js";
+import { parseUuidList } from "../uuid.js";
 import type {
   ApiError,
   Paginated,
@@ -51,12 +53,12 @@ const asNumber = (value: unknown): number | undefined => {
 };
 
 export const PRODUCT_COLUMNS = `
-  p.id, p.name, p.price, p.stock,
+  p.id, p.slug, p.name, p.price, p.stock,
   (SELECT i.url FROM product_images i
    WHERE i.product_id = p.id
    ORDER BY i.sort_order, i.id LIMIT 1) AS image_url,
   c.name AS category, c.slug AS category_slug,
-  b.id AS brand_id, b.name AS brand`;
+  b.id AS brand_id, b.slug AS brand_slug, b.name AS brand`;
 
 export const PRODUCT_JOINS = `
   FROM products p
@@ -68,11 +70,11 @@ export const PRODUCT_JOINS = `
  * Filtri opzionali (query string):
  *   q         testo da cercare in nome, descrizione o codice articolo (tollera gli errori di battitura)
  *   category  slug della categoria (include le sottocategorie)
- *   brand     uno o più id di marca, separati da virgola: brand=1,3
+ *   brand     uno o più slug di marca, separati da virgola
  *   minPrice, maxPrice
  *   inStock   "true" per mostrare solo i disponibili
  *   featured  "true" per mostrare solo i prodotti in evidenza
- *   ids       uno o più id di prodotto, separati da virgola: ids=4,9 (usato dal carrello)
+ *   ids       uno o più UUID di prodotto, separati da virgola (usato dal carrello)
  *   sort      newest | price_asc | price_desc | name
  *   page, limit
  */
@@ -125,8 +127,8 @@ router.get(
       )`);
       }
       if (brand) {
-        const ids = brand.split(",").map(Number).filter(Number.isInteger);
-        if (ids.length > 0) conditions.push(`p.brand_id = ANY(${add(ids)})`);
+        const slugs = parseSlugList(brand);
+        if (slugs.length > 0) conditions.push(`b.slug = ANY(${add(slugs)})`);
       }
       if (minPrice !== undefined)
         conditions.push(`p.price >= ${add(minPrice)}`);
@@ -135,8 +137,8 @@ router.get(
       if (inStock) conditions.push("p.stock > 0");
       if (featured) conditions.push("p.featured");
       if (productIds) {
-        const ids = productIds.split(",").map(Number).filter(Number.isInteger);
-        if (ids.length > 0) conditions.push(`p.id = ANY(${add(ids)})`);
+        // Senza controllo sulla lunghezza: se nessun id è valido non si restituisce nulla, non tutto il catalogo
+        conditions.push(`p.id = ANY(${add(parseUuidList(productIds))})`);
       }
 
       const where = `WHERE ${conditions.join(" AND ")}`;
@@ -166,21 +168,22 @@ router.get(
   ),
 );
 
-/** GET /api/products/:id — dettaglio prodotto con caratteristiche tecniche e immagini */
+/** GET /api/products/:slug — dettaglio prodotto con caratteristiche tecniche e immagini */
 router.get(
-  "/:id",
-  asyncHandler<{ id: string }, ProductDetail | ApiError, unknown, unknown>(
+  "/:slug",
+  asyncHandler<{ slug: string }, ProductDetail | ApiError, unknown, unknown>(
     async (req, res) => {
-      const id = Number(req.params.id);
-      if (!Number.isInteger(id) || id <= 0) {
-        return res.status(400).json({ error: "Id non valido" });
+      const { slug } = req.params;
+      // Uno slug malformato non può esistere: per chi visita l'URL è una pagina inesistente
+      if (!isSlug(slug)) {
+        return res.status(404).json({ error: "Prodotto non trovato" });
       }
 
       const productResult = await pool.query<Omit<ProductDetail, "specs" | "images">>(
         `SELECT ${PRODUCT_COLUMNS}, p.sku, p.description, p.created_at
        ${PRODUCT_JOINS}
-       WHERE p.id = $1 AND p.active`,
-        [id],
+       WHERE p.slug = $1 AND p.active`,
+        [slug],
       );
       const product = productResult.rows[0];
       if (!product) {
@@ -189,12 +192,12 @@ router.get(
 
       const [specsResult, imagesResult] = await Promise.all([
         pool.query<ProductSpec>(
-          "SELECT label, value FROM product_specs WHERE product_id = $1 ORDER BY id",
-          [id],
+          "SELECT label, value FROM product_specs WHERE product_id = $1 ORDER BY sort_order",
+          [product.id],
         ),
         pool.query<ProductPhoto>(
           "SELECT id, url, alt FROM product_images WHERE product_id = $1 ORDER BY sort_order, id",
-          [id],
+          [product.id],
         ),
       ]);
 

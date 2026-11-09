@@ -1,10 +1,13 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import type { ProductSummary } from "@/lib/types";
 import { ProductCard } from "./ProductCard";
 
-const GRID = "grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3";
+// Le celle condividono i filetti, come i moduli di un rack
+const RACK = "grid grid-cols-1 border-t border-l *:border-r *:border-b sm:grid-cols-2";
+const GRID = cn(RACK, "xl:grid-cols-3");
 /** Per le pagine che occupano tutta la larghezza con molti prodotti, come il catalogo */
-const WIDE_GRID = "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4";
+const WIDE_GRID = cn(RACK, "lg:grid-cols-3 xl:grid-cols-4");
 
 interface ProductGridProps {
   products: ProductSummary[];
@@ -28,11 +31,11 @@ export function ProductGridSkeleton({ count = 6, wide = false }: { count?: numbe
   return (
     <ul className={wide ? WIDE_GRID : GRID} aria-label="Caricamento prodotti">
       {Array.from({ length: count }, (_, i) => (
-        <li key={i} className="flex flex-col gap-3 rounded-xl border p-4">
-          <Skeleton className="aspect-square w-full" />
+        <li key={i} className="flex flex-col gap-3 p-4">
           <Skeleton className="h-3 w-1/3" />
-          <Skeleton className="h-4 w-3/4" />
-          <Skeleton className="h-6 w-1/4" />
+          <Skeleton className="aspect-square w-full" />
+          <Skeleton className="h-5 w-3/4" />
+          <Skeleton className="h-5 w-1/4" />
         </li>
       ))}
     </ul>

@@ -52,9 +52,10 @@ Il server parte su `http://localhost:3000`. Prova: `http://localhost:3000/api/he
 | Metodo | URL | Descrizione |
 |---|---|---|
 | GET | `/api/products` | Catalogo con filtri, ordinamento e paginazione |
-| GET | `/api/products/:id` | Dettaglio prodotto con caratteristiche tecniche e immagini |
+| GET | `/api/products/:slug` | Dettaglio prodotto con caratteristiche tecniche e immagini |
 | GET | `/api/categories` | Categorie con sottocategorie |
 | GET | `/api/brands` | Elenco marche |
+| GET | `/api/brands/:slug/products` | Prodotti di una marca |
 | POST | `/api/orders` | Crea un ordine come ospite e scala il magazzino |
 
 ### Filtri di `/api/products`
@@ -63,11 +64,11 @@ Il server parte su `http://localhost:3000`. Prova: `http://localhost:3000/api/he
 |---|---|---|
 | `q` | `q=humbucker` | Cerca in nome, descrizione e codice articolo, tollerando gli errori di battitura |
 | `category` | `category=chitarre` | Slug categoria, include le sottocategorie |
-| `brand` | `brand=1,3` | Uno o più id di marca |
+| `brand` | `brand=pulse-audio,nordwood` | Uno o più slug di marca |
 | `minPrice` / `maxPrice` | `maxPrice=400` | Fascia di prezzo |
 | `inStock` | `inStock=true` | Solo prodotti disponibili |
 | `featured` | `featured=true` | Solo prodotti in evidenza |
-| `ids` | `ids=4,9` | Solo i prodotti indicati (usato dal carrello) |
+| `ids` | `ids=<uuid>,<uuid>` | Solo i prodotti indicati (usato dal carrello) |
 | `sort` | `sort=price_asc` | `newest`, `price_asc`, `price_desc`, `name` |
 | `page` / `limit` | `page=2&limit=12` | Paginazione |
 
@@ -84,7 +85,8 @@ Esempio: `/api/products?category=chitarre&maxPrice=400&sort=price_asc`
 - **`unit_price` in `order_items`**: salva il prezzo al momento dell'acquisto, così gli ordini passati restano corretti se il prezzo cambia.
 - **Carrello nel browser, prezzi sul server**: `localStorage` conserva solo id e quantità; nomi, prezzi e disponibilità si leggono sempre dall'API, e il totale dell'ordine lo calcola il server.
 - **Ordine in una transazione con `SELECT … FOR UPDATE`**: due clienti simultanei non possono comprare lo stesso ultimo pezzo.
-- **Nessuna rotta per leggere un ordine senza login**: con id progressivi esporrebbe i dati di spedizione degli altri clienti.
+- **Nessuna rotta per leggere un ordine senza login**: esporrebbe i dati di spedizione a chiunque abbia l'id dell'ordine.
+- **Chiavi primarie UUID** (`gen_random_uuid()`): gli id non rivelano quanti prodotti o ordini esistono. Il seed li ricava da numeri semplici, così restano uguali a ogni rilancio.
 - **Indici** su categoria, marca e prezzo per velocizzare i filtri del catalogo.
 - **Più immagini per prodotto** nella tabella `product_images`: la prima secondo `sort_order` è la copertina usata nelle card.
 - **Ricerca con `pg_trgm`**: trova i prodotti anche con errori di battitura, usando un indice GIN.

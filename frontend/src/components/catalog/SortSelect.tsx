@@ -11,7 +11,7 @@ const isSortKey = (value: string): value is SortKey => value in SORT_OPTIONS;
 export function SortSelect({ value, onChange }: SortSelectProps) {
   return (
     <label className="flex items-center gap-2 text-sm">
-      <span className="text-muted-foreground">Ordina per</span>
+      <span className="text-silk text-muted-foreground">Ordina per</span>
       <select
         value={value}
         onChange={(e) => {

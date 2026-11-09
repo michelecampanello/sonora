@@ -2,20 +2,21 @@
 // Più avanti potrai riusarli anche nel frontend React.
 
 export interface Brand {
-  id: number;
+  id: string;
+  slug: string;
   name: string;
 }
 
 export interface CategoryRow {
-  id: number;
+  id: string;
   name: string;
   slug: string;
   description: string | null;
-  parent_id: number | null;
+  parent_id: string | null;
 }
 
 export interface Category {
-  id: number;
+  id: string;
   name: string;
   slug: string;
   description: string | null;
@@ -24,14 +25,16 @@ export interface Category {
 
 /** Prodotto come appare nella lista del catalogo */
 export interface ProductSummary {
-  id: number;
+  id: string;
+  slug: string;
   name: string;
   price: string; // pg restituisce NUMERIC come stringa per non perdere precisione
   stock: number;
   image_url: string | null; // copertina: la prima immagine del prodotto
   category: string;
   category_slug: string;
-  brand_id: number;
+  brand_id: string;
+  brand_slug: string;
   brand: string;
 }
 
@@ -41,7 +44,7 @@ export interface ProductSpec {
 }
 
 export interface ProductPhoto {
-  id: number;
+  id: string;
   url: string;
   alt: string | null;
 }
@@ -72,7 +75,7 @@ export interface OrderCustomer {
 }
 
 export interface OrderItem {
-  product_id: number;
+  product_id: string;
   name: string;
   quantity: number;
   unit_price: string;
@@ -80,7 +83,7 @@ export interface OrderItem {
 
 /** Riepilogo restituito quando un ordine va a buon fine */
 export interface OrderConfirmation {
-  id: number;
+  id: string;
   total: string;
   customer: OrderCustomer;
   items: OrderItem[];

@@ -1,7 +1,15 @@
 -- Dati di prova. Marche e prodotti sono inventati.
--- Le immagini le aggiungeremo dopo (foto libere da Unsplash/Pexels).
+-- Le immagini sono illustrazioni vettoriali in frontend/public/prodotti, una per prodotto: <slug>.svg
 
-INSERT INTO categories (id, name, slug, parent_id) VALUES
+-- Le righe qui sotto usano numeri semplici per collegarsi tra loro: seed_id li trasforma
+-- in UUID sempre uguali, così i carrelli salvati nel browser restano validi rilanciando il seed.
+-- Gli slug di prodotti e marche li genera il database a partire dal nome (vedi set_slug in schema.sql).
+CREATE FUNCTION pg_temp.seed_id(kind text, n integer) RETURNS uuid
+  LANGUAGE sql IMMUTABLE AS $$ SELECT md5(kind || ':' || n)::uuid $$;
+
+INSERT INTO categories (id, name, slug, parent_id)
+SELECT pg_temp.seed_id('category', id), name, slug, pg_temp.seed_id('category', parent_id)
+FROM (VALUES
   (1,  'Chitarre',             'chitarre',             NULL),
   (2,  'Bassi',                'bassi',                NULL),
   (3,  'Batterie',             'batterie',             NULL),
@@ -20,9 +28,12 @@ INSERT INTO categories (id, name, slug, parent_id) VALUES
   (16, 'Microfoni',            'microfoni',            5),
   (17, 'Cuffie',               'cuffie',               5),
   (18, 'Corde',                'corde',                6),
-  (19, 'Cavi',                 'cavi',                 6);
+  (19, 'Cavi',                 'cavi',                 6)
+) AS v(id, name, slug, parent_id);
 
-INSERT INTO categories (id, name, slug, description, sort_order, parent_id) VALUES
+INSERT INTO categories (id, name, slug, description, sort_order, parent_id)
+SELECT pg_temp.seed_id('category', id), name, slug, description, sort_order, pg_temp.seed_id('category', parent_id)
+FROM (VALUES
   (20, 'Bassi acustici',            'bassi-acustici',         'Il calore del legno, con preamplificatore per il palco.',       2, 2),
   (21, 'Piatti',                    'piatti',                 'Crash, ride e hi-hat in bronzo e ottone.',                      3, 3),
   (22, 'Percussioni',               'percussioni',            'Cajon e bonghi per ritmi acustici.',                            4, 3),
@@ -31,8 +42,8 @@ INSERT INTO categories (id, name, slug, description, sort_order, parent_id) VALU
   (25, 'Amplificatori per chitarra','amplificatori-chitarra', 'Dai piccoli combo a transistor ai valvolari.',                  1, 24),
   (26, 'Amplificatori per basso',   'amplificatori-basso',    'Potenza e controllo delle frequenze basse.',                    2, 24),
   (27, 'Pedali effetti',            'pedali-effetti',         'Overdrive, delay e altri effetti per il tuo suono.',            3, 6),
-  (28, 'Custodie e borse',          'custodie',               'Per trasportare e proteggere i tuoi strumenti.',                4, 6);
-SELECT setval('categories_id_seq', (SELECT MAX(id) FROM categories));
+  (28, 'Custodie e borse',          'custodie',               'Per trasportare e proteggere i tuoi strumenti.',                4, 6)
+) AS v(id, name, slug, description, sort_order, parent_id);
 
 -- Dettagli categorie: descrizione e ordine di visualizzazione
 UPDATE categories c SET description = v.description, sort_order = v.sort_order
@@ -59,7 +70,9 @@ FROM (VALUES
 ) AS v(slug, sort_order, description)
 WHERE c.slug = v.slug;
 
-INSERT INTO brands (id, name) VALUES
+INSERT INTO brands (id, name)
+SELECT pg_temp.seed_id('brand', id), name
+FROM (VALUES
   (1, 'Nordwood'),
   (2, 'Aurora Instruments'),
   (3, 'Kestrel Drums'),
@@ -67,10 +80,12 @@ INSERT INTO brands (id, name) VALUES
   (5, 'Pulse Audio'),
   (6, 'Stradivolt'),
   (7, 'Altavia'),
-  (8, 'Orfeo Amplification');
-SELECT setval('brands_id_seq', (SELECT MAX(id) FROM brands));
+  (8, 'Orfeo Amplification')
+) AS v(id, name);
 
-INSERT INTO products (id, sku, name, description, price, stock, category_id, brand_id) VALUES
+INSERT INTO products (id, sku, name, description, price, stock, category_id, brand_id)
+SELECT pg_temp.seed_id('product', id), sku, name, description, price, stock, pg_temp.seed_id('category', category_id), pg_temp.seed_id('brand', brand_id)
+FROM (VALUES
   (1, 'SON-0001',  'Nordwood ST-1 Sunburst',     'Chitarra elettrica in stile classico con tre pickup single coil e manico in acero. Il suono è brillante e articolato, perfetto per blues, pop e funk, e il selettore a cinque posizioni offre molte sfumature diverse. Una scelta versatile sia per chi inizia sia per chi cerca una seconda chitarra affidabile.', 349.00, 12, 7,  1),
   (2, 'SON-0002',  'Stradivolt Raven HH',        'Elettrica con due humbucker ad alto output, pensata per rock e metal. I 24 tasti e il ponte tremolo a bloccaggio permettono assoli veloci e uso intenso della leva senza perdere l''accordatura. Ha un suono compatto e aggressivo anche con molto guadagno.',               529.00,  5, 7,  6),
   (3, 'SON-0003',  'Aurora Jazzbox 335',         'Chitarra semi-hollow dal suono caldo e rotondo, ideale per jazz, fusion e blues. La camera interna aggiunge risonanza e profondità, mentre il blocco centrale limita i fischi a volume alto. Con i due humbucker passa da accordi morbidi a soli pieni e cantati.',                            749.00,  3, 7,  2),
@@ -92,9 +107,12 @@ INSERT INTO products (id, sku, name, description, price, stock, category_id, bra
   (19, 'SON-0019', 'Pulse Monitor H50',          'Cuffie chiuse da studio con risposta in frequenza lineare, che restituiscono il suono senza abbellimenti. Isolano bene dall''esterno, quindi sono adatte sia alla registrazione sia al mix. Il connettore da 3,5 mm con adattatore da 6,3 mm le rende compatibili con computer, interfacce e strumenti.',                              99.00, 28, 17, 5),
   (20, 'SON-0020', 'Stradivolt Corde 10-46',     'Muta di corde per chitarra elettrica in acciaio nichelato, scalatura 10-46. È la scalatura più diffusa: un buon equilibrio tra facilità nei bending e corpo del suono. Adatta a quasi tutti i generi, dal pop al rock.',                                8.90, 150, 18, 6),
   (21, 'SON-0021', 'Vesuvio Corde Nylon Normal', 'Muta di corde in nylon per chitarra classica a tensione normale. Offre un suono caldo e una buona proiezione, con una sensazione morbida sotto le dita. Adatta allo studio quotidiano e a chi vuole rinnovare il suono della propria chitarra.',                        9.50, 90, 18, 4),
-  (22, 'SON-0022', 'Pulse Cavo Jack 3 m',        'Cavo jack-jack da 6,3 mm schermato, lunghezza 3 metri, per collegare chitarra, basso o tastiera all''amplificatore. La schermatura riduce ronzii e disturbi, mentre i connettori robusti resistono all''uso quotidiano. La lunghezza giusta per suonare in casa o in sala prove.',                                  14.90, 75, 19, 5);
+  (22, 'SON-0022', 'Pulse Cavo Jack 3 m',        'Cavo jack-jack da 6,3 mm schermato, lunghezza 3 metri, per collegare chitarra, basso o tastiera all''amplificatore. La schermatura riduce ronzii e disturbi, mentre i connettori robusti resistono all''uso quotidiano. La lunghezza giusta per suonare in casa o in sala prove.',                                  14.90, 75, 19, 5)
+) AS v(id, sku, name, description, price, stock, category_id, brand_id);
 
-INSERT INTO products (id, sku, name, description, price, stock, category_id, brand_id) VALUES
+INSERT INTO products (id, sku, name, description, price, stock, category_id, brand_id)
+SELECT pg_temp.seed_id('product', id), sku, name, description, price, stock, pg_temp.seed_id('category', category_id), pg_temp.seed_id('brand', brand_id)
+FROM (VALUES
   (23, 'SON-0023', 'Nordwood Prairie T2',        'Elettrica dal corpo piatto con due single coil, dal suono brillante, diretto e pungente. È la chitarra classica di country e rock''n''roll, ma funziona benissimo anche nell''indie e nel funk. Semplice da regolare e molto comoda da suonare.', 419.00, 8, 7, 1),
   (24, 'SON-0024', 'Stradivolt Viper 7',         'Elettrica a sette corde con manico sottile e due humbucker attivi, pensata per il metal moderno. La corda in più estende la gamma verso il basso per riff pesanti e accordature basse. I 24 tasti e l''elettronica attiva garantiscono un suono preciso anche con distorsioni molto spinte.',     689.00, 4, 7, 6),
   (25, 'SON-0025', 'Aurora Aria Cherry',         'Elettrica in mogano con manico incollato e due humbucker dal suono pieno e corposo. Il mogano dona calore e un sustain lungo, ideale per rock classico, blues e hard rock. Una chitarra di carattere, con finitura ciliegia e una sensazione da strumento di fascia alta.',               899.00, 2, 7, 2),
@@ -139,9 +157,12 @@ INSERT INTO products (id, sku, name, description, price, stock, category_id, bra
   (64, 'SON-0064', 'Pulse Cavo Patch 15 cm',     'Cavetto jack da 15 cm per collegare tra loro i pedali effetti sulla pedaliera. La lunghezza corta mantiene ordinata la pedaliera, e i connettori robusti resistono all''uso dal vivo. Meglio averne qualcuno di scorta.',                                             5.90, 120, 19, 5),
   (65, 'SON-0065', 'Vesuvio Borsa Classica',     'Borsa imbottita per chitarra classica con tracolla, leggera e pratica. L''imbottitura protegge lo strumento da urti e graffi durante gli spostamenti quotidiani. Perfetta per andare a lezione o alle prove.',                                      39.00, 26, 28, 4),
   (66, 'SON-0066', 'Nordwood Custodia Rigida',   'Custodia rigida sagomata per chitarra elettrica, con interno imbottito. Protegge lo strumento anche nei viaggi e nei trasporti più impegnativi, come furgoni e aerei. Ha uno scomparto interno per cavi, corde e piccoli accessori.',                                        119.00, 8, 28, 1),
-  (67, 'SON-0067', 'Nordwood Prairie T2 Limited','Edizione limitata della Prairie T2 con finitura speciale e due single coil. Fuori produzione.',                                                     549.00, 1, 7, 1);
+  (67, 'SON-0067', 'Nordwood Prairie T2 Limited','Edizione limitata della Prairie T2 con finitura speciale e due single coil. Fuori produzione.',                                                     549.00, 1, 7, 1)
+) AS v(id, sku, name, description, price, stock, category_id, brand_id);
 -- Espansione: ogni sottocategoria ha almeno 4 prodotti
-INSERT INTO products (id, sku, name, description, price, stock, category_id, brand_id) VALUES
+INSERT INTO products (id, sku, name, description, price, stock, category_id, brand_id)
+SELECT pg_temp.seed_id('product', id), sku, name, description, price, stock, pg_temp.seed_id('category', category_id), pg_temp.seed_id('brand', brand_id)
+FROM (VALUES
   (68, 'SON-0068', 'Aurora Acoustic Bass 5',     'Basso acustico a cinque corde con top in abete e preamplificatore integrato. La quinta corda estende la gamma verso il basso, mentre il corpo acustico dà un suono naturale e legnoso. Ideale per arrangiamenti acustici che richiedono note più profonde.',                         489.00, 2, 20, 2),
   (69, 'SON-0069', 'Nordwood Folk Bass Mini',    'Basso acustico in scala corta, comodo e leggero da suonare. Le distanze ridotte tra i tasti lo rendono accessibile anche a chi viene dalla chitarra o ha mani piccole. Perfetto per suonare in casa e per le serate acustiche.',                                           299.00, 6, 20, 1),
   (70, 'SON-0070', 'Vesuvio Basso Acustico Fretless', 'Basso acustico senza tasti dal suono morbido, rotondo e vicino a quello del contrabbasso. È un''ottima scelta per jazz acustico e musica d''atmosfera, in uno strumento più comodo e facile da trasportare. Richiede orecchio per l''intonazione, ma il risultato è molto espressivo.',                 459.00, 0, 20, 4),
@@ -167,21 +188,24 @@ INSERT INTO products (id, sku, name, description, price, stock, category_id, bra
   (90, 'SON-0090', 'Altavia Gig Bag Basso',      'Borsa imbottita per basso elettrico con tasca per gli accessori. Protegge lo strumento negli spostamenti quotidiani e ha spazio per cavi, corde e accordatore. Si porta comodamente a spalla come uno zaino.',                           49.00, 21, 28, 7),
   -- Il nome lungo serve a verificare che le card del catalogo non si deformino
   (91, 'SON-0091', 'Altavia Borsa Bacchette Professionale con Scomparti Multipli e Tracolla Imbottita',
-                                                 'Borsa per bacchette e piccoli accessori da batteria, con scomparti multipli e tracolla imbottita. Tiene in ordine bacchette, spazzole, chiave di accordatura e ricambi. Si porta a spalla o si aggancia al timpano della batteria per avere tutto a portata di mano.', 34.90, 30, 28, 7);
-SELECT setval('products_id_seq', (SELECT MAX(id) FROM products));
+                                                 'Borsa per bacchette e piccoli accessori da batteria, con scomparti multipli e tracolla imbottita. Tiene in ordine bacchette, spazzole, chiave di accordatura e ricambi. Si porta a spalla o si aggancia al timpano della batteria per avere tutto a portata di mano.', 34.90, 30, 28, 7)
+) AS v(id, sku, name, description, price, stock, category_id, brand_id);
 
 -- Prodotto nascosto: serve a provare che non compaia nel negozio
-UPDATE products SET active = false WHERE id = 67;
+UPDATE products SET active = false WHERE id = pg_temp.seed_id('product', 67);
 
 -- Date di inserimento diverse, così l'ordinamento "Più recenti" ha un effetto visibile
--- Si parte dall'id più alto: funziona con qualsiasi numero di prodotti (la vecchia formula 100 - id
--- avrebbe creato date nel futuro superati i 100 prodotti)
-UPDATE products SET created_at = now() - ((SELECT MAX(id) FROM products) - id) * interval '1 day';
+-- Si parte dal codice articolo più alto: funziona con qualsiasi numero di prodotti
+UPDATE products SET created_at = now()
+  - ((SELECT MAX(right(sku, 4)::int) FROM products) - right(sku, 4)::int) * interval '1 day';
 
 -- Prodotti in evidenza nella landing page
-UPDATE products SET featured = true WHERE id IN (1, 8, 11, 13, 15, 16, 57, 87);
+UPDATE products SET featured = true
+WHERE id IN (SELECT pg_temp.seed_id('product', n) FROM unnest(ARRAY[1, 8, 11, 13, 15, 16, 57, 87]) AS n);
 
-INSERT INTO product_specs (product_id, label, value) VALUES
+INSERT INTO product_specs (product_id, label, value)
+SELECT pg_temp.seed_id('product', product_id), label, value
+FROM (VALUES
   (1, 'Corde', '6'), (1, 'Pickup', '3 single coil'), (1, 'Tasti', '22'), (1, 'Manico', 'Acero'),
   (2, 'Corde', '6'), (2, 'Pickup', '2 humbucker'),   (2, 'Tasti', '24'), (2, 'Ponte', 'Tremolo a bloccaggio'),
   (3, 'Corde', '6'), (3, 'Corpo', 'Semi-hollow'),    (3, 'Pickup', '2 humbucker'),
@@ -195,9 +219,12 @@ INSERT INTO product_specs (product_id, label, value) VALUES
   (15, 'Tasti', '37'), (15, 'Oscillatori', '4'), (15, 'Tipo', 'Analogico'),
   (16, 'Ingressi', '2'), (16, 'Risoluzione', '24 bit / 192 kHz'), (16, 'Connessione', 'USB-C'),
   (17, 'Tipo', 'Condensatore'), (17, 'Diagramma polare', 'Cardioide'),
-  (20, 'Scalatura', '10-46'), (20, 'Materiale', 'Acciaio nichelato');
+  (20, 'Scalatura', '10-46'), (20, 'Materiale', 'Acciaio nichelato')
+) AS v(product_id, label, value);
 
-INSERT INTO product_specs (product_id, label, value) VALUES
+INSERT INTO product_specs (product_id, label, value)
+SELECT pg_temp.seed_id('product', product_id), label, value
+FROM (VALUES
   (5, 'Corde', '6'), (5, 'Corpo', 'Ridotto da viaggio'),
   (7, 'Corde', '6 (nylon)'), (7, 'Formato', '1/2'),
   (9, 'Corde', '4'), (9, 'Elettronica', 'Passiva'),
@@ -250,9 +277,12 @@ INSERT INTO product_specs (product_id, label, value) VALUES
   (64, 'Lunghezza', '15 cm'), (64, 'Connettori', 'Jack 6,3 mm'),
   (65, 'Compatibilità', 'Chitarra classica'), (65, 'Tracolla', 'Inclusa'),
   (66, 'Compatibilità', 'Chitarra elettrica'), (66, 'Tipo', 'Rigida'),
-  (67, 'Corde', '6'), (67, 'Pickup', '2 single coil');
+  (67, 'Corde', '6'), (67, 'Pickup', '2 single coil')
+) AS v(product_id, label, value);
 
-INSERT INTO product_specs (product_id, label, value) VALUES
+INSERT INTO product_specs (product_id, label, value)
+SELECT pg_temp.seed_id('product', product_id), label, value
+FROM (VALUES
   (68, 'Corde', '5'), (68, 'Top', 'Abete'), (68, 'Elettronica', 'Preamplificatore'),
   (69, 'Corde', '4'), (69, 'Scala', 'Corta'),
   (70, 'Corde', '4'), (70, 'Tasti', 'Senza tasti'),
@@ -276,4 +306,10 @@ INSERT INTO product_specs (product_id, label, value) VALUES
   (88, 'Effetto', 'Fuzz'), (88, 'Circuito', 'Analogico al germanio'),
   (89, 'Tipo', 'Accordatore cromatico'), (89, 'Bypass', 'True bypass'),
   (90, 'Compatibilità', 'Basso elettrico'), (90, 'Tipo', 'Imbottita'),
-  (91, 'Compatibilità', 'Bacchette e accessori'), (91, 'Tracolla', 'Inclusa');
+  (91, 'Compatibilità', 'Bacchette e accessori'), (91, 'Tracolla', 'Inclusa')
+) AS v(product_id, label, value);
+
+-- Una copertina per ogni prodotto
+INSERT INTO product_images (product_id, url, alt, sort_order)
+SELECT id, '/prodotti/' || slug || '.svg', 'Illustrazione di ' || name, 0
+FROM products;

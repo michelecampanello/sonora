@@ -1,10 +1,11 @@
 import { useSearchParams } from "react-router";
+import { isSlug } from "@/lib/utils";
 import { SORT_OPTIONS, type CatalogFilters, type SortKey } from "@/lib/types";
 
 const isSortKey = (value: string | null): value is SortKey =>
   value !== null && value in SORT_OPTIONS;
 
-/** Legge i filtri dall'URL (es. /catalogo?category=chitarre&brand=1,3&page=2) */
+/** Legge i filtri dall'URL (es. /catalogo?category=chitarre&sort=name&page=2) */
 export function filtersFromParams(params: URLSearchParams): CatalogFilters {
   const sort = params.get("sort");
   const page = Number(params.get("page"));
@@ -13,8 +14,7 @@ export function filtersFromParams(params: URLSearchParams): CatalogFilters {
     category: params.get("category") || undefined,
     brands: (params.get("brand") ?? "")
       .split(",")
-      .map(Number)
-      .filter((n) => Number.isInteger(n) && n > 0),
+      .filter(isSlug),
     minPrice: params.get("minPrice") || undefined,
     maxPrice: params.get("maxPrice") || undefined,
     inStock: params.get("inStock") === "true",

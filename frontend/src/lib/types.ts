@@ -2,12 +2,13 @@
 // Se cambi un tipo nel backend, aggiornalo anche qui.
 
 export interface Brand {
-  id: number;
+  id: string;
+  slug: string;
   name: string;
 }
 
 export interface Category {
-  id: number;
+  id: string;
   name: string;
   slug: string;
   description: string | null;
@@ -15,14 +16,16 @@ export interface Category {
 }
 
 export interface ProductSummary {
-  id: number;
+  id: string;
+  slug: string;
   name: string;
   price: string; // NUMERIC di PostgreSQL arriva come stringa
   stock: number;
   image_url: string | null; // copertina: la prima immagine del prodotto
   category: string;
   category_slug: string;
-  brand_id: number;
+  brand_id: string;
+  brand_slug: string;
   brand: string;
 }
 
@@ -32,7 +35,7 @@ export interface ProductSpec {
 }
 
 export interface ProductPhoto {
-  id: number;
+  id: string;
   url: string;
   alt: string | null;
 }
@@ -62,14 +65,14 @@ export interface OrderCustomer {
 }
 
 export interface OrderItem {
-  product_id: number;
+  product_id: string;
   name: string;
   quantity: number;
   unit_price: string;
 }
 
 export interface OrderConfirmation {
-  id: number;
+  id: string;
   total: string;
   customer: OrderCustomer;
   items: OrderItem[];
@@ -87,7 +90,7 @@ export type SortKey = keyof typeof SORT_OPTIONS;
 export interface CatalogFilters {
   q?: string;
   category?: string;
-  brands: number[];
+  brands: string[];
   minPrice?: string;
   maxPrice?: string;
   inStock: boolean;

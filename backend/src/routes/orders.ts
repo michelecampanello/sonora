@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { pool } from "../db.js";
 import { asyncHandler } from "../asyncHandler.js";
+import { isUuid } from "../uuid.js";
 import type { ApiError, OrderConfirmation, OrderCustomer, OrderItem } from "../types.js";
 
 const router = Router();
@@ -10,7 +11,7 @@ const MAX_QUANTITY = 99;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 interface CartLine {
-  productId: number;
+  productId: string;
   quantity: number;
 }
 
@@ -48,13 +49,13 @@ function parseItems(value: unknown): CartLine[] | string {
   if (!Array.isArray(value) || value.length === 0) return "Il carrello è vuoto";
   if (value.length > MAX_LINES) return "Troppi articoli nel carrello";
 
-  const quantities = new Map<number, number>();
+  const quantities = new Map<string, number>();
   for (const item of value) {
     if (!isRecord(item)) return "Articolo non valido";
-    const { productId, quantity } = item;
-    if (typeof productId !== "number" || !Number.isInteger(productId) || productId <= 0) {
-      return "Articolo non valido";
-    }
+    const { quantity } = item;
+    if (!isUuid(item.productId)) return "Articolo non valido";
+    // Postgres restituisce gli UUID in minuscolo: serve lo stesso formato per confrontarli
+    const productId = item.productId.toLowerCase();
     if (typeof quantity !== "number" || !Number.isInteger(quantity) || quantity <= 0) {
       return "Quantità non valida";
     }
@@ -86,7 +87,7 @@ router.post(
       // FOR UPDATE blocca le righe fino al COMMIT: due ordini simultanei non possono vendere
       // lo stesso ultimo pezzo. ORDER BY id evita i deadlock tra ordini con gli stessi prodotti.
       const { rows: products } = await client.query<{
-        id: number;
+        id: string;
         name: string;
         price: string;
         stock: number;
@@ -104,7 +105,7 @@ router.post(
       for (const line of lines) {
         const product = products.find((p) => p.id === line.productId);
         if (!product) {
-          unavailable.push(`articolo ${line.productId}`);
+          unavailable.push("un articolo non più in vendita");
         } else if (product.stock < line.quantity) {
           unavailable.push(product.name);
         } else {
@@ -127,7 +128,7 @@ router.post(
       }
 
       const total = (totalCents / 100).toFixed(2);
-      const orderResult = await client.query<{ id: number }>(
+      const orderResult = await client.query<{ id: string }>(
         `INSERT INTO orders (total, customer_name, customer_email, address, city, postal_code, province)
          VALUES ($1, $2, $3, $4, $5, $6, $7)
          RETURNING id`,
