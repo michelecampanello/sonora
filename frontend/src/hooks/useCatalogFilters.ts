@@ -53,7 +53,7 @@ export function useCatalogFilters() {
   };
 
   const resetFilters = () => {
-    // la ricerca testuale resta: si azzerano solo i filtri laterali
+    // la ricerca testuale resta: si azzerano solo i filtri
     setParams(filtersToParams({ q: filters.q, brands: [], inStock: false, sort: "newest", page: 1 }));
   };
 

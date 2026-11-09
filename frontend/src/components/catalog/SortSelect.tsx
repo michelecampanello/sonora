@@ -17,7 +17,7 @@ export function SortSelect({ value, onChange }: SortSelectProps) {
         onChange={(e) => {
           if (isSortKey(e.target.value)) onChange(e.target.value);
         }}
-        className="h-9 rounded-md border border-input bg-transparent px-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        className="h-8 rounded-lg border border-input bg-transparent px-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
       >
         {Object.entries(SORT_OPTIONS).map(([key, label]) => (
           <option key={key} value={key}>

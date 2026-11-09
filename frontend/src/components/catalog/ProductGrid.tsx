@@ -3,10 +3,17 @@ import type { ProductSummary } from "@/lib/types";
 import { ProductCard } from "./ProductCard";
 
 const GRID = "grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3";
+/** Per le pagine che occupano tutta la larghezza con molti prodotti, come il catalogo */
+const WIDE_GRID = "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4";
 
-export function ProductGrid({ products }: { products: ProductSummary[] }) {
+interface ProductGridProps {
+  products: ProductSummary[];
+  wide?: boolean;
+}
+
+export function ProductGrid({ products, wide = false }: ProductGridProps) {
   return (
-    <ul className={GRID}>
+    <ul className={wide ? WIDE_GRID : GRID}>
       {products.map((product) => (
         <li key={product.id}>
           <ProductCard product={product} />
@@ -17,9 +24,9 @@ export function ProductGrid({ products }: { products: ProductSummary[] }) {
 }
 
 /** Segnaposto mostrato al primo caricamento, con la stessa forma delle card vere */
-export function ProductGridSkeleton({ count = 6 }: { count?: number }) {
+export function ProductGridSkeleton({ count = 6, wide = false }: { count?: number; wide?: boolean }) {
   return (
-    <ul className={GRID} aria-label="Caricamento prodotti">
+    <ul className={wide ? WIDE_GRID : GRID} aria-label="Caricamento prodotti">
       {Array.from({ length: count }, (_, i) => (
         <li key={i} className="flex flex-col gap-3 rounded-xl border p-4">
           <Skeleton className="aspect-square w-full" />
