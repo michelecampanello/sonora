@@ -1,21 +1,23 @@
-import { Button } from "@/components/ui/button"
+import { Route, Routes } from "react-router";
+import { Layout } from "@/components/layout/Layout";
+import { CatalogPage } from "@/pages/CatalogPage";
+import { CategoriesPage } from "@/pages/CategoriesPage";
+import { LandingPage } from "@/pages/LandingPage";
+import { NotFoundPage } from "@/pages/NotFoundPage";
+import { ProductPage } from "@/pages/ProductPage";
+import { SubcategoriesPage } from "@/pages/SubcategoriesPage";
 
-export function App() {
+export default function App() {
   return (
-    <div className="flex min-h-svh p-6">
-      <div className="flex max-w-md min-w-0 flex-col gap-4 text-sm leading-loose">
-        <div>
-          <h1 className="font-medium">Project ready!</h1>
-          <p>You may now add components and start building.</p>
-          <p>We&apos;ve already added the button component for you.</p>
-          <Button className="mt-2">Button</Button>
-        </div>
-        <div className="font-mono text-xs text-muted-foreground">
-          (Press <kbd>d</kbd> to toggle dark mode)
-        </div>
-      </div>
-    </div>
-  )
+    <Routes>
+      <Route element={<Layout />}>
+        <Route index element={<LandingPage />} />
+        <Route path="catalogo" element={<CatalogPage />} />
+        <Route path="categorie" element={<CategoriesPage />} />
+        <Route path="categorie/:slug" element={<SubcategoriesPage />} />
+        <Route path="prodotti/:id" element={<ProductPage />} />
+        <Route path="*" element={<NotFoundPage />} />
+      </Route>
+    </Routes>
+  );
 }
-
-export default App
