@@ -13,10 +13,8 @@ export class ApiError extends Error {
   }
 }
 
-/** Esegue una GET e restituisce il JSON, oppure lancia un ApiError con il messaggio del server. */
-export async function fetchJson<T>(path: string, signal?: AbortSignal): Promise<T> {
-  const response = await fetch(`${API_URL}${path}`, { signal });
-
+/** Restituisce il JSON della risposta, oppure lancia un ApiError con il messaggio del server. */
+async function readResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     let message = `Errore ${response.status}`;
     try {
@@ -31,6 +29,21 @@ export async function fetchJson<T>(path: string, signal?: AbortSignal): Promise<
   }
 
   return (await response.json()) as T;
+}
+
+/** Esegue una GET e restituisce il JSON. */
+export async function fetchJson<T>(path: string, signal?: AbortSignal): Promise<T> {
+  return readResponse<T>(await fetch(`${API_URL}${path}`, { signal }));
+}
+
+/** Esegue una POST con un body JSON e restituisce il JSON. */
+export async function postJson<T>(path: string, body: unknown): Promise<T> {
+  const response = await fetch(`${API_URL}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  return readResponse<T>(response);
 }
 
 /** Costruisce l'URL del catalogo a partire dai filtri. Include solo i filtri impostati. */
@@ -49,6 +62,8 @@ export function productsPath(filters: CatalogFilters): string {
 }
 
 export const featuredProductsPath = "/api/products?featured=true&inStock=true&limit=6";
+export const productsByIdPath = (ids: number[]) => `/api/products?ids=${ids.join(",")}&limit=50`;
+export const ordersPath = "/api/orders";
 export const productPath = (id: number | string) => `/api/products/${id}`;
 export const categoriesPath = "/api/categories";
 export const brandsPath = "/api/brands";

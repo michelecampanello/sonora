@@ -58,8 +58,7 @@ CREATE TABLE product_images (
   sort_order INTEGER NOT NULL DEFAULT 0   -- la prima immagine in ordine è la copertina
 );
 
--- Tabelle per le tappe successive (utenti e ordini): le creiamo subito
--- così lo schema è completo, ma le useremo dalla tappa 4.
+-- Gli utenti si useranno dalla tappa del login: la tabella c'è già così lo schema è completo.
 CREATE TABLE users (
   id            SERIAL PRIMARY KEY,
   name          VARCHAR(100) NOT NULL,
@@ -71,10 +70,17 @@ CREATE TABLE users (
 
 CREATE TABLE orders (
   id         SERIAL PRIMARY KEY,
-  user_id    INTEGER NOT NULL REFERENCES users(id),
+  user_id    INTEGER REFERENCES users(id),   -- NULL = ordine effettuato come ospite
   total      NUMERIC(10, 2) NOT NULL,
   status     VARCHAR(20) NOT NULL DEFAULT 'pending'
              CHECK (status IN ('pending', 'paid', 'shipped', 'cancelled')),
+  -- Dati di contatto e spedizione copiati nell'ordine: restano corretti anche se il cliente poi li cambia
+  customer_name  VARCHAR(100) NOT NULL,
+  customer_email VARCHAR(255) NOT NULL,
+  address        VARCHAR(200) NOT NULL,
+  city           VARCHAR(100) NOT NULL,
+  postal_code    VARCHAR(5)   NOT NULL,
+  province       VARCHAR(2)   NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

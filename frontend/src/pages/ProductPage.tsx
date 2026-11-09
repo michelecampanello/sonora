@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProductGallery } from "@/components/catalog/ProductGallery";
 import { StockBadge } from "@/components/catalog/StockBadge";
+import { addToCart, useCart } from "@/hooks/useCart";
 import { useFetch } from "@/hooks/useFetch";
 import { productPath } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
@@ -12,6 +13,7 @@ import type { ProductDetail } from "@/lib/types";
 export function ProductPage() {
   const { id = "" } = useParams();
   const { data: product, error } = useFetch<ProductDetail>(productPath(id));
+  const { items } = useCart();
 
   if (error) {
     return (
@@ -27,6 +29,8 @@ export function ProductPage() {
   }
 
   if (!product) return <ProductPageSkeleton />;
+
+  const inCart = items.find((item) => item.productId === product.id)?.quantity ?? 0;
 
   return (
     <article className="flex flex-col gap-6">
@@ -67,10 +71,25 @@ export function ProductPage() {
 
           {product.description && <p className="leading-relaxed text-muted-foreground">{product.description}</p>}
 
-          {/* TODO tappa 3: aggiungere al carrello */}
-          <Button size="lg" className="self-start" disabled={product.stock === 0}>
-            <ShoppingCart /> Aggiungi al carrello
-          </Button>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              size="lg"
+              disabled={inCart >= product.stock}
+              onClick={() => addToCart(product.id, product.stock)}
+            >
+              <ShoppingCart /> Aggiungi al carrello
+            </Button>
+            <p role="status" className="text-sm text-muted-foreground">
+              {inCart > 0 && (
+                <>
+                  {inCart} nel carrello ·{" "}
+                  <Link to="/carrello" className="text-foreground underline underline-offset-4">
+                    Vai al carrello
+                  </Link>
+                </>
+              )}
+            </p>
+          </div>
 
           {product.specs.length > 0 && (
             <section aria-labelledby="specs-title" className="flex flex-col gap-2">

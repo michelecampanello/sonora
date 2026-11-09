@@ -52,6 +52,29 @@ export interface Paginated<T> {
   pages: number;
 }
 
+export interface OrderCustomer {
+  name: string;
+  email: string;
+  address: string;
+  city: string;
+  postal_code: string;
+  province: string;
+}
+
+export interface OrderItem {
+  product_id: number;
+  name: string;
+  quantity: number;
+  unit_price: string;
+}
+
+export interface OrderConfirmation {
+  id: number;
+  total: string;
+  customer: OrderCustomer;
+  items: OrderItem[];
+}
+
 export const SORT_OPTIONS = {
   newest: "Più recenti",
   price_asc: "Prezzo crescente",

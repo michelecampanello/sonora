@@ -32,6 +32,7 @@ interface ProductQuery {
   maxPrice?: unknown;
   inStock?: unknown;
   featured?: unknown;
+  ids?: unknown;
   sort?: unknown;
   page?: unknown;
   limit?: unknown;
@@ -71,6 +72,7 @@ export const PRODUCT_JOINS = `
  *   minPrice, maxPrice
  *   inStock   "true" per mostrare solo i disponibili
  *   featured  "true" per mostrare solo i prodotti in evidenza
+ *   ids       uno o più id di prodotto, separati da virgola: ids=4,9 (usato dal carrello)
  *   sort      newest | price_asc | price_desc | name
  *   page, limit
  */
@@ -85,6 +87,7 @@ router.get(
       const maxPrice = asNumber(req.query.maxPrice);
       const inStock = asString(req.query.inStock) === "true";
       const featured = asString(req.query.featured) === "true";
+      const productIds = asString(req.query.ids);
       const sortParam = asString(req.query.sort) ?? "newest";
       const sort: SortKey = isSortKey(sortParam) ? sortParam : "newest";
       const page = Math.max(1, Math.trunc(asNumber(req.query.page) ?? 1));
@@ -131,6 +134,10 @@ router.get(
         conditions.push(`p.price <= ${add(maxPrice)}`);
       if (inStock) conditions.push("p.stock > 0");
       if (featured) conditions.push("p.featured");
+      if (productIds) {
+        const ids = productIds.split(",").map(Number).filter(Number.isInteger);
+        if (ids.length > 0) conditions.push(`p.id = ANY(${add(ids)})`);
+      }
 
       const where = `WHERE ${conditions.join(" AND ")}`;
 

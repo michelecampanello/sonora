@@ -1,8 +1,10 @@
 import type { FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { AudioWaveform, Search, ShoppingCart } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useCart } from "@/hooks/useCart";
 
 const NAV_LINK = "text-sm font-medium text-muted-foreground hover:text-foreground";
 
@@ -10,6 +12,7 @@ export function Header() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const currentQuery = params.get("q") ?? "";
+  const { count } = useCart();
 
   const search = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -49,9 +52,18 @@ export function Header() {
           />
         </form>
 
-        {/* Il carrello arriverà nella tappa 3 */}
-        <Button variant="ghost" size="icon" aria-label="Carrello">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative"
+          nativeButton={false}
+          render={<Link to="/carrello" />}
+          aria-label={count > 0 ? `Carrello, ${count} articoli` : "Carrello"}
+        >
           <ShoppingCart />
+          {count > 0 && (
+            <Badge className="absolute -top-1 -right-1 h-4 min-w-4 px-1 text-[0.625rem]">{count}</Badge>
+          )}
         </Button>
       </div>
     </header>

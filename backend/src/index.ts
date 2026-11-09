@@ -3,6 +3,7 @@ import cors from "cors";
 import productsRouter from "./routes/products.js";
 import categoriesRouter from "./routes/categories.js";
 import brandsRouter from "./routes/brands.js";
+import ordersRouter from "./routes/orders.js";
 
 const app = express();
 
@@ -16,6 +17,7 @@ app.get("/api/health", (_req, res) => {
 app.use("/api/products", productsRouter);
 app.use("/api/categories", categoriesRouter);
 app.use("/api/brands", brandsRouter);
+app.use("/api/orders", ordersRouter);
 
 // Rotta non trovata
 const notFound: RequestHandler = (_req, res) => {
@@ -25,6 +27,11 @@ app.use(notFound);
 
 // Gestione centralizzata degli errori (deve avere 4 parametri per essere riconosciuta da Express)
 const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
+  // Body JSON malformato o troppo grande: è un errore del client, non del server
+  if (err.type === "entity.parse.failed" || err.type === "entity.too.large") {
+    res.status(400).json({ error: "Richiesta non valida" });
+    return;
+  }
   console.error(err);
   res.status(500).json({ error: "Errore interno del server" });
 };
