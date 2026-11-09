@@ -1,0 +1,54 @@
+import type { CatalogFilters } from "@/lib/types";
+
+// In sviluppo resta vuoto: Vite inoltra le chiamate /api al backend (vedi "proxy" in vite.config.ts).
+// Online imposterai VITE_API_URL con l'indirizzo del backend pubblicato.
+const API_URL: string = import.meta.env.VITE_API_URL ?? "";
+
+export class ApiError extends Error {
+  status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+  }
+}
+
+/** Esegue una GET e restituisce il JSON, oppure lancia un ApiError con il messaggio del server. */
+export async function fetchJson<T>(path: string, signal?: AbortSignal): Promise<T> {
+  const response = await fetch(`${API_URL}${path}`, { signal });
+
+  if (!response.ok) {
+    let message = `Errore ${response.status}`;
+    try {
+      const body: unknown = await response.json();
+      if (body && typeof body === "object" && "error" in body && typeof body.error === "string") {
+        message = body.error;
+      }
+    } catch {
+      // risposta senza JSON: teniamo il messaggio generico
+    }
+    throw new ApiError(response.status, message);
+  }
+
+  return (await response.json()) as T;
+}
+
+/** Costruisce l'URL del catalogo a partire dai filtri. Include solo i filtri impostati. */
+export function productsPath(filters: CatalogFilters): string {
+  const params = new URLSearchParams();
+  if (filters.q) params.set("q", filters.q);
+  if (filters.category) params.set("category", filters.category);
+  if (filters.brands.length > 0) params.set("brand", filters.brands.join(","));
+  if (filters.minPrice) params.set("minPrice", filters.minPrice);
+  if (filters.maxPrice) params.set("maxPrice", filters.maxPrice);
+  if (filters.inStock) params.set("inStock", "true");
+  params.set("sort", filters.sort);
+  params.set("page", String(filters.page));
+  params.set("limit", "12");
+  return `/api/products?${params.toString()}`;
+}
+
+export const featuredProductsPath = "/api/products?featured=true&inStock=true&limit=6";
+export const productPath = (id: number | string) => `/api/products/${id}`;
+export const categoriesPath = "/api/categories";
+export const brandsPath = "/api/brands";
