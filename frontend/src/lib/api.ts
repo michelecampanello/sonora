@@ -33,13 +33,14 @@ async function readResponse<T>(response: Response): Promise<T> {
 
 /** Esegue una GET e restituisce il JSON. */
 export async function fetchJson<T>(path: string, signal?: AbortSignal): Promise<T> {
-  return readResponse<T>(await fetch(`${API_URL}${path}`, { signal }));
+  return readResponse<T>(await fetch(`${API_URL}${path}`, { signal, credentials: "include" }));
 }
 
 /** Esegue una POST con un body JSON e restituisce il JSON. */
 export async function postJson<T>(path: string, body: unknown): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, {
     method: "POST",
+    credentials: "include", // invia il cookie di sessione
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
@@ -64,6 +65,10 @@ export function productsPath(filters: CatalogFilters): string {
 export const featuredProductsPath = "/api/products?featured=true&inStock=true&limit=6";
 export const productsByIdPath = (ids: string[]) => `/api/products?ids=${ids.join(",")}&limit=50`;
 export const ordersPath = "/api/orders";
+export const loginPath = "/api/auth/login";
+export const registerPath = "/api/auth/register";
+export const logoutPath = "/api/auth/logout";
+export const currentUserPath = "/api/auth/me";
 export const productPath = (slug: string) => `/api/products/${encodeURIComponent(slug)}`;
 export const categoriesPath = "/api/categories";
 export const brandsPath = "/api/brands";

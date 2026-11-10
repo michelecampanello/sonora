@@ -64,6 +64,7 @@ export function SubcategoriesPage() {
             name,
             description,
             to: catalogUrl(childSlug),
+            image: `/categorie/${childSlug}.svg`,
           }))}
         />
       ) : (

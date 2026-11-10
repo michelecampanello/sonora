@@ -1,27 +1,19 @@
-import { useState, type FormEvent, type ComponentProps } from "react";
+import { useState, type FormEvent } from "react";
 import { Link, Navigate, useNavigate } from "react-router";
 import { OrderTotals } from "@/components/cart/OrderTotals";
+import { FormField as Field } from "@/components/FormField";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/hooks/useAuth";
 import { clearCart, useCartLines } from "@/hooks/useCart";
 import { ApiError, ordersPath, postJson } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 import type { OrderConfirmation, OrderCustomer } from "@/lib/types";
 
-function Field({ label, name, className, ...props }: ComponentProps<typeof Input> & { label: string; name: string }) {
-  return (
-    <div className={`flex flex-col gap-1.5 ${className ?? ""}`}>
-      <Label htmlFor={name}>{label}</Label>
-      <Input id={name} name={name} required {...props} />
-    </div>
-  );
-}
-
 export function CheckoutPage() {
   const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
   const { lines, count, total, error, loading, hasStockProblems } = useCartLines();
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<{ message: string; stock: boolean }>();
@@ -77,6 +69,15 @@ export function CheckoutPage() {
     <div className="flex flex-col gap-6">
       <title>Checkout — Sonora</title>
       <h1 className="text-display text-6xl md:text-8xl">Checkout</h1>
+      {!user && !authLoading && (
+        <p className="text-sm text-muted-foreground">
+          Hai un account?{" "}
+          <Link to="/accedi" state={{ from: "/checkout" }} className="text-foreground underline underline-offset-4 hover:text-primary">
+            Accedi
+          </Link>{" "}
+          per collegare l'ordine al tuo profilo, oppure continua come ospite.
+        </p>
+      )}
 
       <div className="grid items-start gap-6 lg:grid-cols-[1fr_380px] lg:gap-10">
         <form id="checkout" onSubmit={submit} className="flex flex-col gap-8">
@@ -85,8 +86,9 @@ export function CheckoutPage() {
               Dati di contatto
             </h2>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Nome e cognome" name="name" autoComplete="name" minLength={2} maxLength={100} />
-              <Field label="Email" name="email" type="email" autoComplete="email" maxLength={255} />
+              {/* key: la sessione arriva dopo il primo disegno e i campi vanno precompilati */}
+              <Field key={`name-${user?.id}`} defaultValue={user?.name} label="Nome e cognome" name="name" autoComplete="name" minLength={2} maxLength={100} />
+              <Field key={`email-${user?.id}`} defaultValue={user?.email} label="Email" name="email" type="email" autoComplete="email" maxLength={255} />
             </div>
           </section>
 

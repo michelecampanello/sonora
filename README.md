@@ -10,7 +10,7 @@ Progetto full stack in TypeScript: React (frontend) + Node.js/Express (backend) 
 - [x] **Tappa 1** — Backend base: database, catalogo, categorie, marche
 - [ ] Tappa 2 — Frontend catalogo (lista, dettaglio, ricerca, filtri)
 - [x] Tappa 3 — Carrello
-- [ ] Tappa 4 — Registrazione e login (JWT)
+- [x] Tappa 4 — Registrazione e login (JWT)
 - [ ] Tappa 5 — Checkout e storico ordini (fatto: checkout come ospite, con pagamento alla consegna; manca lo storico)
 - [ ] Tappa 6 — Pannello admin
 - [ ] Tappa 7 — Pubblicazione online
@@ -26,7 +26,7 @@ npm install
 # 1. Crea il database
 createdb music_store
 
-# 2. Crea il file .env partendo dall'esempio e controlla utente/password di Postgres
+# 2. Crea il file .env partendo dall'esempio: controlla utente/password di Postgres e imposta JWT_SECRET
 cp .env.example .env
 
 # 3. Crea le tabelle e inserisci i dati di prova
@@ -56,7 +56,11 @@ Il server parte su `http://localhost:3000`. Prova: `http://localhost:3000/api/he
 | GET | `/api/categories` | Categorie con sottocategorie |
 | GET | `/api/brands` | Elenco marche |
 | GET | `/api/brands/:slug/products` | Prodotti di una marca |
-| POST | `/api/orders` | Crea un ordine come ospite e scala il magazzino |
+| POST | `/api/orders` | Crea un ordine, collegato all'utente se ha fatto l'accesso, e scala il magazzino |
+| POST | `/api/auth/register` | Crea un account e avvia la sessione |
+| POST | `/api/auth/login` | Avvia la sessione |
+| POST | `/api/auth/logout` | Chiude la sessione |
+| GET | `/api/auth/me` | Utente collegato, 401 se non c'è una sessione |
 
 ### Filtri di `/api/products`
 
@@ -76,6 +80,9 @@ Esempio: `/api/products?category=chitarre&maxPrice=400&sort=price_asc`
 
 ## Scelte tecniche
 
+- **Backend a tre livelli**: `routes/` collega URL e controller, `controllers/` legge e valida la richiesta e sceglie la risposta HTTP, `services/` contiene le query e la logica di business, senza conoscere Express.
+- **Sessione con JWT in un cookie `httpOnly` e `SameSite=Lax`**: JavaScript non può leggere il token e gli altri siti non possono usarlo. Online il sito e l'API devono stare sullo stesso dominio base (es. `www.example.com` e `api.example.com`), oppure l'API va inoltrata dal dominio del sito.
+- **Password con bcrypt e limite ai tentativi** su login e registrazione. Il limite è per indirizzo IP: dietro un proxy, online, va configurato `trust proxy` in Express.
 - **TypeScript in modalità `strict`**, con i tipi delle risposte API raccolti in `src/types.ts` (riutilizzabili nel frontend).
 - **Validazione della query string**: i parametri vengono convertiti e controllati (`asString`, `asNumber`) invece di fidarsi di ciò che arriva dal client.
 

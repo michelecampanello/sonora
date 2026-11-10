@@ -1,6 +1,17 @@
 // Tipi delle risposte API: corrispondono a backend/src/types.ts.
 // Se cambi un tipo nel backend, aggiornalo anche qui.
 
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: "customer" | "admin";
+}
+
+export interface AuthResponse {
+  user: User;
+}
+
 export interface Brand {
   id: string;
   slug: string;

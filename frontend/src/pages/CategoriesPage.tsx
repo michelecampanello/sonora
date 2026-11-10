@@ -33,6 +33,7 @@ export function CategoriesPage() {
             name,
             description,
             to: `/categorie/${slug}`,
+            image: `/categorie/${slug}.svg`,
           }))}
         />
       )}

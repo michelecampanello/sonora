@@ -1,7 +1,8 @@
-import type { FormEvent } from "react";
-import { Link, NavLink, useNavigate, useSearchParams } from "react-router";
-import { Search, ShoppingCart } from "lucide-react";
+import { useState, type FormEvent } from "react";
+import { Link, NavLink, useLocation, useNavigate, useSearchParams } from "react-router";
+import { LogOut, Search, ShoppingCart, User } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { logout, useAuth } from "@/hooks/useAuth";
 import { useCart } from "@/hooks/useCart";
 import { LevelMark } from "./LevelMark";
 
@@ -13,6 +14,14 @@ export function Header() {
   const [params] = useSearchParams();
   const currentQuery = params.get("q") ?? "";
   const { count } = useCart();
+  const { user, loading } = useAuth();
+  const location = useLocation();
+  const [logoutFailed, setLogoutFailed] = useState(false);
+
+  const signOut = () => {
+    setLogoutFailed(false);
+    logout().catch(() => setLogoutFailed(true));
+  };
 
   const search = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -51,6 +60,32 @@ export function Header() {
             className="h-9 rounded-none border-0 border-b border-input pr-0 pl-6 text-ellipsis focus-visible:border-primary focus-visible:ring-0"
           />
         </form>
+
+        {user && (
+          <div className="flex shrink-0 items-center gap-3">
+            <span className="text-silk hidden max-w-40 truncate text-muted-foreground lg:inline">{user.name}</span>
+            <button
+              type="button"
+              onClick={signOut}
+              aria-label={logoutFailed ? "Uscita non riuscita, riprova" : "Esci"}
+              className="text-silk flex h-9 items-center gap-2 transition-colors hover:text-primary"
+            >
+              <LogOut className="size-4" aria-hidden />
+              <span className="hidden md:inline">{logoutFailed ? "Riprova" : "Esci"}</span>
+            </button>
+          </div>
+        )}
+        {!user && !loading && (
+          <Link
+            to="/accedi"
+            state={{ from: `${location.pathname}${location.search}` }}
+            aria-label="Accedi"
+            className="text-silk flex h-9 shrink-0 items-center gap-2 transition-colors hover:text-primary"
+          >
+            <User className="size-4" aria-hidden />
+            <span className="hidden md:inline">Accedi</span>
+          </Link>
+        )}
 
         <Link
           to="/carrello"

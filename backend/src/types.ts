@@ -89,6 +89,17 @@ export interface OrderConfirmation {
   items: OrderItem[];
 }
 
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: "customer" | "admin";
+}
+
+export interface AuthResponse {
+  user: User;
+}
+
 export interface ApiError {
   error: string;
 }

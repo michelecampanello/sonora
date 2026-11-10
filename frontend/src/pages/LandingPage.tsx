@@ -59,6 +59,7 @@ export function LandingPage() {
                 name,
                 description,
                 to: `/categorie/${slug}`,
+                image: `/categorie/${slug}.svg`,
               }))}
             />
           )}
