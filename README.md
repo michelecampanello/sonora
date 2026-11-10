@@ -11,7 +11,7 @@ Progetto full stack in TypeScript: React (frontend) + Node.js/Express (backend) 
 - [ ] Tappa 2 — Frontend catalogo (lista, dettaglio, ricerca, filtri)
 - [x] Tappa 3 — Carrello
 - [x] Tappa 4 — Registrazione e login (JWT)
-- [ ] Tappa 5 — Checkout e storico ordini (fatto: checkout come ospite, con pagamento alla consegna; manca lo storico)
+- [x] Tappa 5 — Checkout e area personale (ordini, indirizzi, metodi di pagamento, impostazioni). Il pagamento è solo alla consegna
 - [ ] Tappa 6 — Pannello admin
 - [ ] Tappa 7 — Pubblicazione online
 
@@ -41,6 +41,7 @@ Altri comandi:
 
 | Comando | Cosa fa |
 |---|---|
+| `npm run db:migrate` | Aggiorna un database già esistente senza cancellare i dati |
 | `npm run typecheck` | Controlla i tipi senza generare file |
 | `npm run build` | Compila TypeScript in JavaScript nella cartella `dist/` |
 | `npm start` | Avvia la versione compilata (quella da usare online) |
@@ -61,6 +62,18 @@ Il server parte su `http://localhost:3000`. Prova: `http://localhost:3000/api/he
 | POST | `/api/auth/login` | Avvia la sessione |
 | POST | `/api/auth/logout` | Chiude la sessione |
 | GET | `/api/auth/me` | Utente collegato, 401 se non c'è una sessione |
+| POST | `/api/auth/forgot-password` | Invia il link di reset; risponde allo stesso modo se l'email non è registrata |
+| POST | `/api/auth/reset-password` | Imposta la nuova password con il link ricevuto e chiude tutte le sessioni |
+| GET | `/api/account/orders` | Ordini dell'utente, paginati (`?page=2`) |
+| GET | `/api/account/orders/:id` | Dettaglio di un ordine dell'utente |
+| PATCH | `/api/account/profile` | Cambia nome ed email; per l'email serve la password attuale |
+| PUT | `/api/account/password` | Cambia la password e chiude le altre sessioni |
+| GET, POST | `/api/account/addresses` | Indirizzi salvati |
+| PUT, DELETE | `/api/account/addresses/:id` | Modifica o elimina un indirizzo |
+| POST | `/api/account/addresses/:id/default` | Imposta l'indirizzo predefinito |
+| GET, POST | `/api/account/payment-methods` | Metodi di pagamento salvati |
+| DELETE | `/api/account/payment-methods/:id` | Elimina un metodo di pagamento |
+| POST | `/api/account/payment-methods/:id/default` | Imposta il metodo predefinito |
 
 ### Filtri di `/api/products`
 
@@ -82,7 +95,9 @@ Esempio: `/api/products?category=chitarre&maxPrice=400&sort=price_asc`
 
 - **Backend a tre livelli**: `routes/` collega URL e controller, `controllers/` legge e valida la richiesta e sceglie la risposta HTTP, `services/` contiene le query e la logica di business, senza conoscere Express.
 - **Sessione con JWT in un cookie `httpOnly` e `SameSite=Lax`**: JavaScript non può leggere il token e gli altri siti non possono usarlo. Online il sito e l'API devono stare sullo stesso dominio base (es. `www.example.com` e `api.example.com`), oppure l'API va inoltrata dal dominio del sito.
+- **Reset della password con link monouso** valido un'ora: nel database resta solo l'impronta SHA-256 del token. In sviluppo, senza `SMTP_URL`, il link viene stampato nella console del backend.
 - **Password con bcrypt e limite ai tentativi** su login e registrazione. Il limite è per indirizzo IP: dietro un proxy, online, va configurato `trust proxy` in Express.
+- **Nessun dato sensibile delle carte**: si salvano solo circuito, ultime 4 cifre, intestatario e scadenza. Per incassare davvero servirà un fornitore di pagamenti, come Stripe, che custodisca le carte al posto del negozio.
 - **TypeScript in modalità `strict`**, con i tipi delle risposte API raccolti in `src/types.ts` (riutilizzabili nel frontend).
 - **Validazione della query string**: i parametri vengono convertiti e controllati (`asString`, `asNumber`) invece di fidarsi di ciò che arriva dal client.
 

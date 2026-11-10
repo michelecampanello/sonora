@@ -36,16 +36,18 @@ export async function fetchJson<T>(path: string, signal?: AbortSignal): Promise<
   return readResponse<T>(await fetch(`${API_URL}${path}`, { signal, credentials: "include" }));
 }
 
-/** Esegue una POST con un body JSON e restituisce il JSON. */
-export async function postJson<T>(path: string, body: unknown): Promise<T> {
+/** Invia una richiesta con un body JSON e restituisce il JSON. */
+export async function sendJson<T>(method: "POST" | "PUT" | "PATCH" | "DELETE", path: string, body?: unknown): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, {
-    method: "POST",
+    method,
     credentials: "include", // invia il cookie di sessione
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body: body === undefined ? undefined : JSON.stringify(body),
   });
   return readResponse<T>(response);
 }
+
+export const postJson = <T>(path: string, body: unknown): Promise<T> => sendJson<T>("POST", path, body);
 
 /** Costruisce l'URL del catalogo a partire dai filtri. Include solo i filtri impostati. */
 export function productsPath(filters: CatalogFilters): string {
@@ -69,6 +71,16 @@ export const loginPath = "/api/auth/login";
 export const registerPath = "/api/auth/register";
 export const logoutPath = "/api/auth/logout";
 export const currentUserPath = "/api/auth/me";
+export const forgotPasswordPath = "/api/auth/forgot-password";
+export const resetPasswordPath = "/api/auth/reset-password";
+export const accountOrdersPath = (page: number) => `/api/account/orders?page=${page}`;
+export const accountOrderPath = (id: string) => `/api/account/orders/${encodeURIComponent(id)}`;
+export const profilePath = "/api/account/profile";
+export const passwordPath = "/api/account/password";
+export const addressesPath = "/api/account/addresses";
+export const addressPath = (id: string) => `${addressesPath}/${encodeURIComponent(id)}`;
+export const paymentMethodsPath = "/api/account/payment-methods";
+export const paymentMethodPath = (id: string) => `${paymentMethodsPath}/${encodeURIComponent(id)}`;
 export const productPath = (slug: string) => `/api/products/${encodeURIComponent(slug)}`;
 export const categoriesPath = "/api/categories";
 export const brandsPath = "/api/brands";

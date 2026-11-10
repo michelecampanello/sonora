@@ -1,6 +1,8 @@
 import express, { type ErrorRequestHandler, type RequestHandler } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import { FRONTEND_ORIGIN } from "./config.js";
+import accountRouter from "./routes/account.js";
 import authRouter from "./routes/auth.js";
 import productsRouter from "./routes/products.js";
 import categoriesRouter from "./routes/categories.js";
@@ -11,7 +13,7 @@ const app = express();
 
 // Permette al frontend di chiamare le API inviando il cookie di sessione: con i cookie
 // l'origine va indicata per esteso, non si può lasciare aperta a tutti.
-app.use(cors({ origin: process.env.FRONTEND_ORIGIN ?? "http://localhost:5173", credentials: true }));
+app.use(cors({ origin: FRONTEND_ORIGIN, credentials: true }));
 app.use(express.json());  // legge il body JSON delle richieste
 app.use(cookieParser());  // legge il cookie di sessione
 
@@ -20,6 +22,7 @@ app.get("/api/health", (_req, res) => {
 });
 
 app.use("/api/auth", authRouter);
+app.use("/api/account", accountRouter);
 app.use("/api/products", productsRouter);
 app.use("/api/categories", categoriesRouter);
 app.use("/api/brands", brandsRouter);

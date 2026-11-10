@@ -1,5 +1,5 @@
 -- Schema del database. Si può rilanciare: elimina e ricrea le tabelle.
-DROP TABLE IF EXISTS order_items, orders, users, product_images, product_specs, products, brands, categories CASCADE;
+DROP TABLE IF EXISTS password_reset_tokens, payment_methods, addresses, order_items, orders, users, product_images, product_specs, products, brands, categories CASCADE;
 
 CREATE EXTENSION IF NOT EXISTS pg_trgm;  -- ricerca tollerante agli errori di battitura
 
@@ -105,15 +105,54 @@ CREATE TABLE product_images (
   sort_order INTEGER NOT NULL DEFAULT 0   -- la prima immagine in ordine è la copertina
 );
 
--- Gli utenti si useranno dalla tappa del login: la tabella c'è già così lo schema è completo.
 CREATE TABLE users (
-  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name          VARCHAR(100) NOT NULL,
-  email         VARCHAR(255) NOT NULL UNIQUE,
-  password_hash TEXT NOT NULL,
-  role          VARCHAR(20) NOT NULL DEFAULT 'customer' CHECK (role IN ('customer', 'admin')),
-  created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name            VARCHAR(100) NOT NULL,
+  email           VARCHAR(255) NOT NULL UNIQUE,
+  password_hash   TEXT NOT NULL,
+  role            VARCHAR(20) NOT NULL DEFAULT 'customer' CHECK (role IN ('customer', 'admin')),
+  session_version INTEGER NOT NULL DEFAULT 0,  -- aumenta al cambio password: invalida le sessioni già aperte
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Un solo link di reset valido per utente. Si salva l'impronta, mai il token.
+CREATE TABLE password_reset_tokens (
+  user_id    UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  token_hash CHAR(64) NOT NULL UNIQUE,
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE addresses (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name        VARCHAR(100) NOT NULL,   -- destinatario
+  address     VARCHAR(200) NOT NULL,
+  city        VARCHAR(100) NOT NULL,
+  postal_code VARCHAR(5)   NOT NULL,
+  province    VARCHAR(2)   NOT NULL,
+  is_default  BOOLEAN NOT NULL DEFAULT false,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Solo i dati mostrabili: il numero completo della carta e il CVV non devono mai arrivare qui.
+CREATE TABLE payment_methods (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  brand      VARCHAR(20) NOT NULL CHECK (brand IN ('visa', 'mastercard', 'amex', 'altro')),
+  last4      CHAR(4) NOT NULL CHECK (last4 ~ '^[0-9]{4}$'),
+  holder     VARCHAR(100) NOT NULL,
+  exp_month  SMALLINT NOT NULL CHECK (exp_month BETWEEN 1 AND 12),
+  exp_year   SMALLINT NOT NULL,
+  is_default BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Al massimo un elemento predefinito per utente
+CREATE UNIQUE INDEX idx_addresses_one_default ON addresses(user_id) WHERE is_default;
+CREATE UNIQUE INDEX idx_payment_methods_one_default ON payment_methods(user_id) WHERE is_default;
+CREATE INDEX idx_addresses_user ON addresses(user_id);
+CREATE INDEX idx_payment_methods_user ON payment_methods(user_id);
 
 CREATE TABLE orders (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -144,5 +183,6 @@ CREATE INDEX idx_products_category ON products(category_id);
 CREATE INDEX idx_products_brand    ON products(brand_id);
 CREATE INDEX idx_products_price    ON products(price);
 CREATE INDEX idx_product_images_product ON product_images(product_id, sort_order);
+CREATE INDEX idx_orders_user ON orders(user_id, created_at DESC);
 CREATE INDEX idx_products_search   ON products
   USING gin (name gin_trgm_ops, description gin_trgm_ops, sku gin_trgm_ops);

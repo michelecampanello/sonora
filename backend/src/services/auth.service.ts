@@ -22,8 +22,15 @@ const DUMMY_HASH = bcrypt.hashSync(randomBytes(16).toString("hex"), BCRYPT_COST)
 
 export class EmailTakenError extends Error {}
 
+export const hashPassword = (password: string): Promise<string> => bcrypt.hash(password, BCRYPT_COST);
+
+interface Session {
+  userId: string;
+  version: number;
+}
+
 export async function registerUser(name: string, email: string, password: string): Promise<User> {
-  const passwordHash = await bcrypt.hash(password, BCRYPT_COST);
+  const passwordHash = await hashPassword(password);
   try {
     const { rows } = await pool.query<User>(
       `INSERT INTO users (name, email, password_hash) VALUES ($1, $2, $3) RETURNING ${USER_COLUMNS}`,
@@ -50,20 +57,68 @@ export async function verifyCredentials(email: string, password: string): Promis
   return user;
 }
 
-export async function findUserById(id: string): Promise<User | null> {
-  const { rows } = await pool.query<User>(`SELECT ${USER_COLUMNS} FROM users WHERE id = $1`, [id]);
+/** L'utente della sessione, oppure null se l'account non esiste più o la sessione è stata invalidata */
+export async function findSessionUser({ userId, version }: Session): Promise<User | null> {
+  const { rows } = await pool.query<User>(
+    `SELECT ${USER_COLUMNS} FROM users WHERE id = $1 AND session_version = $2`,
+    [userId, version],
+  );
   return rows[0] ?? null;
 }
 
-export function createSessionToken(userId: string): string {
-  return jwt.sign({}, JWT_SECRET!, { subject: userId, algorithm: "HS256", expiresIn: `${SESSION_DAYS}d` });
+export async function isCurrentPassword(userId: string, password: string): Promise<boolean> {
+  const { rows } = await pool.query<{ password_hash: string }>(
+    "SELECT password_hash FROM users WHERE id = $1",
+    [userId],
+  );
+  return bcrypt.compare(password, rows[0]?.password_hash ?? DUMMY_HASH);
 }
 
-/** Restituisce l'id dell'utente, oppure null se il token è falso o scaduto */
-export function readSessionToken(token: string): string | null {
+export async function updateProfile(userId: string, name: string, email: string): Promise<User> {
   try {
-    const { sub } = jwt.verify(token, JWT_SECRET!, { algorithms: ["HS256"] }) as jwt.JwtPayload;
-    return sub ?? null;
+    const { rows } = await pool.query<User>(
+      // Cambiando email cade anche l'eventuale link di reset inviato al vecchio indirizzo
+      `WITH cleared AS (
+         DELETE FROM password_reset_tokens t USING users u
+         WHERE t.user_id = u.id AND u.id = $1 AND u.email <> $3
+       )
+       UPDATE users SET name = $2, email = $3 WHERE id = $1 RETURNING ${USER_COLUMNS}`,
+      [userId, name, email],
+    );
+    return rows[0]!;
+  } catch (err) {
+    if (err instanceof pg.DatabaseError && err.code === UNIQUE_VIOLATION) throw new EmailTakenError();
+    throw err;
+  }
+}
+
+/** Cambia la password e invalida tutte le sessioni aperte, anche su altri dispositivi */
+export async function changePassword(userId: string, newPassword: string): Promise<void> {
+  const passwordHash = await hashPassword(newPassword);
+  await pool.query(
+    `WITH cleared AS (DELETE FROM password_reset_tokens WHERE user_id = $1)
+     UPDATE users SET password_hash = $2, session_version = session_version + 1 WHERE id = $1`,
+    [userId, passwordHash],
+  );
+}
+
+export async function createSessionToken(userId: string): Promise<string> {
+  const { rows } = await pool.query<{ session_version: number }>(
+    "SELECT session_version FROM users WHERE id = $1",
+    [userId],
+  );
+  return jwt.sign({ ver: rows[0]!.session_version }, JWT_SECRET!, {
+    subject: userId,
+    algorithm: "HS256",
+    expiresIn: `${SESSION_DAYS}d`,
+  });
+}
+
+/** Legge il token, restituendo null se è falso o scaduto */
+export function readSessionToken(token: string): Session | null {
+  try {
+    const { sub, ver } = jwt.verify(token, JWT_SECRET!, { algorithms: ["HS256"] }) as jwt.JwtPayload;
+    return sub && typeof ver === "number" ? { userId: sub, version: ver } : null;
   } catch {
     return null;
   }

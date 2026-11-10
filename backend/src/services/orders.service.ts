@@ -1,5 +1,88 @@
 import { pool } from "../db.js";
-import type { OrderConfirmation, OrderCustomer, OrderItem } from "../types.js";
+import type {
+  OrderConfirmation,
+  OrderCustomer,
+  OrderDetail,
+  OrderDetailItem,
+  OrderItem,
+  OrderStatus,
+  OrderSummary,
+  Paginated,
+} from "../types.js";
+
+const ORDERS_PER_PAGE = 10;
+
+/** Gli ordini di un utente, dal più recente */
+export async function listUserOrders(userId: string, page: number): Promise<Paginated<OrderSummary>> {
+  const countResult = await pool.query<{ total: number }>(
+    "SELECT COUNT(*)::int AS total FROM orders WHERE user_id = $1",
+    [userId],
+  );
+  const total = countResult.rows[0]?.total ?? 0;
+
+  const { rows } = await pool.query<OrderSummary>(
+    `SELECT o.id, o.status, o.total, o.created_at,
+       (SELECT COALESCE(SUM(i.quantity), 0)::int FROM order_items i WHERE i.order_id = o.id) AS item_count
+     FROM orders o
+     WHERE o.user_id = $1
+     ORDER BY o.created_at DESC, o.id
+     LIMIT $2 OFFSET $3`,
+    [userId, ORDERS_PER_PAGE, (page - 1) * ORDERS_PER_PAGE],
+  );
+
+  return { items: rows, total, page, pages: Math.ceil(total / ORDERS_PER_PAGE) };
+}
+
+/** Un ordine dell'utente, oppure null se non esiste o appartiene a qualcun altro */
+export async function findUserOrder(userId: string, orderId: string): Promise<OrderDetail | null> {
+  const orderResult = await pool.query<{
+    id: string;
+    status: OrderStatus;
+    total: string;
+    created_at: Date;
+    customer_name: string;
+    customer_email: string;
+    address: string;
+    city: string;
+    postal_code: string;
+    province: string;
+  }>(
+    `SELECT id, status, total, created_at, customer_name, customer_email, address, city, postal_code, province
+     FROM orders WHERE id = $1 AND user_id = $2`,
+    [orderId, userId],
+  );
+  const order = orderResult.rows[0];
+  if (!order) return null;
+
+  const itemsResult = await pool.query<OrderDetailItem>(
+    `SELECT i.product_id, p.name, CASE WHEN p.active THEN p.slug END AS slug,
+       (SELECT img.url FROM product_images img
+        WHERE img.product_id = p.id
+        ORDER BY img.sort_order, img.id LIMIT 1) AS image_url,
+       i.quantity, i.unit_price
+     FROM order_items i
+     JOIN products p ON p.id = i.product_id
+     WHERE i.order_id = $1
+     ORDER BY p.name`,
+    [orderId],
+  );
+
+  return {
+    id: order.id,
+    status: order.status,
+    total: order.total,
+    created_at: order.created_at,
+    customer: {
+      name: order.customer_name,
+      email: order.customer_email,
+      address: order.address,
+      city: order.city,
+      postal_code: order.postal_code,
+      province: order.province,
+    },
+    items: itemsResult.rows,
+  };
+}
 
 export interface CartLine {
   productId: string;

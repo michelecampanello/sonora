@@ -7,13 +7,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { clearCart, useCartLines } from "@/hooks/useCart";
-import { ApiError, ordersPath, postJson } from "@/lib/api";
+import { useFetch } from "@/hooks/useFetch";
+import { addressesPath, ApiError, ordersPath, postJson } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
-import type { OrderConfirmation, OrderCustomer } from "@/lib/types";
+import type { Address, OrderConfirmation, OrderCustomer } from "@/lib/types";
 
 export function CheckoutPage() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
+  const { data: addresses } = useFetch<Address[]>(user ? addressesPath : null);
+  const saved = addresses?.find((address) => address.is_default);
   const { lines, count, total, error, loading, hasStockProblems } = useCartLines();
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<{ message: string; stock: boolean }>();
@@ -86,8 +89,8 @@ export function CheckoutPage() {
               Dati di contatto
             </h2>
             <div className="grid gap-4 sm:grid-cols-2">
-              {/* key: la sessione arriva dopo il primo disegno e i campi vanno precompilati */}
-              <Field key={`name-${user?.id}`} defaultValue={user?.name} label="Nome e cognome" name="name" autoComplete="name" minLength={2} maxLength={100} />
+              {/* key: sessione e indirizzo arrivano dopo il primo disegno e i campi vanno precompilati */}
+              <Field key={`name-${user?.id}-${saved?.id}`} defaultValue={saved?.name ?? user?.name} label="Nome e cognome" name="name" autoComplete="name" minLength={2} maxLength={100} />
               <Field key={`email-${user?.id}`} defaultValue={user?.email} label="Email" name="email" type="email" autoComplete="email" maxLength={255} />
             </div>
           </section>
@@ -96,9 +99,11 @@ export function CheckoutPage() {
             <h2 id="shipping-title" className="text-display border-t pt-3 text-3xl">
               Indirizzo di spedizione
             </h2>
-            <Field label="Indirizzo" name="address" autoComplete="street-address" minLength={3} maxLength={200} />
+            <Field key={`address-${saved?.id}`} defaultValue={saved?.address} label="Indirizzo" name="address" autoComplete="street-address" minLength={3} maxLength={200} />
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-[1fr_2fr_1fr]">
               <Field
+                key={`postal-${saved?.id}`}
+                defaultValue={saved?.postal_code}
                 label="CAP"
                 name="postal_code"
                 autoComplete="postal-code"
@@ -108,6 +113,8 @@ export function CheckoutPage() {
                 title="5 cifre"
               />
               <Field
+                key={`city-${saved?.id}`}
+                defaultValue={saved?.city}
                 label="Città"
                 name="city"
                 autoComplete="address-level2"
@@ -116,6 +123,8 @@ export function CheckoutPage() {
                 className="col-span-2 row-start-2 sm:col-span-1 sm:row-start-auto"
               />
               <Field
+                key={`province-${saved?.id}`}
+                defaultValue={saved?.province}
                 label="Provincia"
                 name="province"
                 autoComplete="address-level1"

@@ -12,16 +12,19 @@ interface AuthFormProps {
   /** Lancia un errore con il messaggio da mostrare se l'operazione fallisce */
   onSubmit: (data: FormData) => Promise<void>;
   children: ReactNode;
+  /** Per le pagine utili anche a chi ha già una sessione aperta, come il reset della password */
+  allowSignedIn?: boolean;
 }
 
-export function AuthForm({ title, submitLabel, switchText, switchLabel, switchTo, onSubmit, children }: AuthFormProps) {
+export function AuthForm({ title, submitLabel, switchText, switchLabel, switchTo, onSubmit, children, allowSignedIn }: AuthFormProps) {
   const { user } = useAuth();
   const location = useLocation();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string>();
+  const notice = (location.state as { notice?: string } | null)?.notice;
 
   // Chi ha già una sessione, o l'ha appena avviata, torna alla pagina da cui è arrivato
-  if (user) {
+  if (user && !allowSignedIn) {
     const from = (location.state as { from?: string } | null)?.from ?? "/";
     return <Navigate to={from} replace />;
   }
@@ -42,6 +45,12 @@ export function AuthForm({ title, submitLabel, switchText, switchLabel, switchTo
     <div className="mx-auto flex w-full max-w-md flex-col gap-6">
       <title>{`${title} — Sonora`}</title>
       <h1 className="text-display text-6xl md:text-8xl">{title}</h1>
+
+      {notice && (
+        <p role="status" className="border border-border p-3 text-sm">
+          {notice}
+        </p>
+      )}
 
       <form onSubmit={submit} className="flex flex-col gap-4 border-t pt-6">
         {children}

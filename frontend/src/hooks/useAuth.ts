@@ -12,7 +12,7 @@ interface AuthState {
 let state: AuthState = { user: null, loading: true };
 const listeners = new Set<() => void>();
 
-function setUser(user: User | null) {
+export function setUser(user: User | null) {
   state = { user, loading: false };
   listeners.forEach((listener) => listener());
 }

@@ -12,6 +12,59 @@ export interface AuthResponse {
   user: User;
 }
 
+export type OrderStatus = "pending" | "paid" | "shipped" | "cancelled";
+
+export interface OrderSummary {
+  id: string;
+  status: OrderStatus;
+  total: string;
+  created_at: string;
+  item_count: number;
+}
+
+export interface OrderDetailItem {
+  product_id: string;
+  name: string;
+  slug: string | null; // null se il prodotto non è più in vendita
+  image_url: string | null;
+  quantity: number;
+  unit_price: string;
+}
+
+export interface OrderDetail extends Omit<OrderSummary, "item_count"> {
+  customer: OrderCustomer;
+  items: OrderDetailItem[];
+}
+
+export interface Address {
+  id: string;
+  name: string; // destinatario
+  address: string;
+  city: string;
+  postal_code: string;
+  province: string;
+  is_default: boolean;
+}
+
+export const CARD_BRANDS = {
+  visa: "Visa",
+  mastercard: "Mastercard",
+  amex: "American Express",
+  altro: "Altro circuito",
+} as const;
+
+export type CardBrand = keyof typeof CARD_BRANDS;
+
+export interface PaymentMethod {
+  id: string;
+  brand: CardBrand;
+  last4: string;
+  holder: string;
+  exp_month: number;
+  exp_year: number;
+  is_default: boolean;
+}
+
 export interface Brand {
   id: string;
   slug: string;

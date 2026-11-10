@@ -9,10 +9,9 @@ import {
   SESSION_MAX_AGE_MS,
   verifyCredentials,
 } from "../services/auth.service.js";
+import { asRecord, isPersonName, passwordError, text } from "../validation.js";
+import { requestPasswordReset, resetPassword as applyPasswordReset } from "../services/passwordReset.service.js";
 import type { ApiError, AuthResponse, User } from "../types.js";
-
-const MIN_PASSWORD_LENGTH = 8;
-const MAX_PASSWORD_BYTES = 72; // bcrypt ignora tutto ciò che viene dopo il 72° byte
 
 // httpOnly: il token non è leggibile da JavaScript. sameSite: un altro sito non può usare la sessione.
 const COOKIE_OPTIONS: CookieOptions = {
@@ -22,12 +21,8 @@ const COOKIE_OPTIONS: CookieOptions = {
   path: "/",
 };
 
-const text = (value: unknown): string => (typeof value === "string" ? value.trim() : "");
-const asRecord = (value: unknown): Record<string, unknown> =>
-  typeof value === "object" && value !== null ? (value as Record<string, unknown>) : {};
-
-function startSession(res: Response<AuthResponse | ApiError>, user: User) {
-  res.cookie(SESSION_COOKIE, createSessionToken(user.id), { ...COOKIE_OPTIONS, maxAge: SESSION_MAX_AGE_MS });
+export async function startSession(res: Response<any>, user: User) {
+  res.cookie(SESSION_COOKIE, await createSessionToken(user.id), { ...COOKIE_OPTIONS, maxAge: SESSION_MAX_AGE_MS });
 }
 
 /** POST /api/auth/register — crea un account e avvia la sessione */
@@ -37,18 +32,14 @@ export const register = asyncHandler<{}, AuthResponse | ApiError, unknown, unkno
   const email = text(fields.email).toLowerCase();
   const password = typeof fields.password === "string" ? fields.password : "";
 
-  if (name.length < 2 || name.length > 100) return res.status(400).json({ error: "Nome non valido" });
+  if (!isPersonName(name)) return res.status(400).json({ error: "Nome non valido" });
   if (!isEmail(email)) return res.status(400).json({ error: "Email non valida" });
-  if (password.length < MIN_PASSWORD_LENGTH) {
-    return res.status(400).json({ error: `La password deve avere almeno ${MIN_PASSWORD_LENGTH} caratteri` });
-  }
-  if (Buffer.byteLength(password) > MAX_PASSWORD_BYTES) {
-    return res.status(400).json({ error: "La password è troppo lunga" });
-  }
+  const invalidPassword = passwordError(password);
+  if (invalidPassword) return res.status(400).json({ error: invalidPassword });
 
   try {
     const user = await registerUser(name, email, password);
-    startSession(res, user);
+    await startSession(res, user);
     return res.status(201).json({ user });
   } catch (err) {
     if (err instanceof EmailTakenError) {
@@ -69,8 +60,34 @@ export const login = asyncHandler<{}, AuthResponse | ApiError, unknown, unknown>
   // Lo stesso messaggio per email e password sbagliate: non rivela quali email sono registrate
   if (!user) return res.status(401).json({ error: "Email o password non corrette" });
 
-  startSession(res, user);
+  await startSession(res, user);
   return res.json({ user });
+});
+
+/** POST /api/auth/forgot-password — invia il link di reset, se l'email è registrata */
+export const forgotPassword = asyncHandler<{}, { status: string } | ApiError, unknown, unknown>(async (req, res) => {
+  const email = text(asRecord(req.body).email).toLowerCase();
+  if (!isEmail(email)) return res.status(400).json({ error: "Email non valida" });
+
+  // Si risponde prima di lavorare: nemmeno i tempi di risposta rivelano se l'email è registrata
+  res.json({ status: "ok" });
+  requestPasswordReset(email).catch((err: unknown) => console.error(err));
+  return undefined;
+});
+
+/** POST /api/auth/reset-password — imposta la nuova password usando il link ricevuto */
+export const resetPassword = asyncHandler<{}, { status: string } | ApiError, unknown, unknown>(async (req, res) => {
+  const fields = asRecord(req.body);
+  const token = text(fields.token);
+  const newPassword = typeof fields.newPassword === "string" ? fields.newPassword : "";
+
+  const invalid = passwordError(newPassword);
+  if (invalid) return res.status(400).json({ error: invalid });
+  if (!/^[0-9a-f]{64}$/.test(token) || !(await applyPasswordReset(token, newPassword))) {
+    return res.status(400).json({ error: "Il link non è valido o è scaduto" });
+  }
+
+  return res.json({ status: "ok" });
 });
 
 /** POST /api/auth/logout — chiude la sessione */
