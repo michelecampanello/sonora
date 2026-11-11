@@ -11,8 +11,9 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SoundSignature } from "./SoundSignature";
 
-// Finché non ci sono foto, mostriamo un'icona in base alla categoria.
+// Finché non ci sono foto, mostriamo la firma sonora del prodotto e un'icona in base alla categoria.
 const ICONS: [keyword: string, icon: LucideIcon][] = [
   ["chitarre", Guitar],
   ["bassi", Guitar],
@@ -44,9 +45,10 @@ export function ProductImage({ name, imageUrl, categorySlug, className }: Produc
   }
 
   return (
-    <div className={cn(base, "flex items-center justify-center")} role="img" aria-label={name}>
+    <div className={cn(base, "relative overflow-hidden")} role="img" aria-label={name}>
+      <SoundSignature seed={name} className="absolute inset-x-[8%] inset-y-[20%] h-[60%] w-[84%] text-primary" />
       {createElement(iconFor(categorySlug), {
-        className: "size-1/3 text-muted-foreground",
+        className: "absolute top-[7%] left-[8%] size-[11%] text-muted-foreground",
         strokeWidth: 1.25,
       })}
     </div>

@@ -9,10 +9,10 @@ Progetto full stack in TypeScript: React (frontend) + Node.js/Express (backend) 
 
 - [x] **Tappa 1** — Backend base: database, catalogo, categorie, marche
 - [ ] Tappa 2 — Frontend catalogo (lista, dettaglio, ricerca, filtri)
-- [ ] Tappa 3 — Carrello
-- [ ] Tappa 4 — Registrazione e login (JWT)
-- [ ] Tappa 5 — Checkout e storico ordini
-- [ ] Tappa 6 — Pannello admin
+- [x] Tappa 3 — Carrello
+- [x] Tappa 4 — Registrazione e login (JWT)
+- [x] Tappa 5 — Checkout e area personale (ordini, indirizzi, metodi di pagamento, impostazioni). Il pagamento è solo alla consegna
+- [x] Tappa 6 — Pannello admin: ordini (stati, annullamento con ritorno in magazzino), creazione e modifica dei prodotti con caratteristiche e immagini. Le immagini si indicano con un indirizzo: il caricamento dei file non c'è ancora
 - [ ] Tappa 7 — Pubblicazione online
 
 ## Avvio in locale
@@ -26,7 +26,7 @@ npm install
 # 1. Crea il database
 createdb music_store
 
-# 2. Crea il file .env partendo dall'esempio e controlla utente/password di Postgres
+# 2. Crea il file .env partendo dall'esempio: controlla utente/password di Postgres e imposta JWT_SECRET
 cp .env.example .env
 
 # 3. Crea le tabelle e inserisci i dati di prova
@@ -41,9 +41,24 @@ Altri comandi:
 
 | Comando | Cosa fa |
 |---|---|
+| `npm run db:migrate` | Aggiorna un database già esistente senza cancellare i dati |
 | `npm run typecheck` | Controlla i tipi senza generare file |
 | `npm run build` | Compila TypeScript in JavaScript nella cartella `dist/` |
 | `npm start` | Avvia la versione compilata (quella da usare online) |
+| `npm test` | Esegue i test (`npm run test:watch` li rilancia a ogni modifica) |
+| `npm run make-admin -- email@example.com` | Dà il ruolo di amministratore a un account già registrato |
+
+## Test
+
+Entrambe le parti usano [Vitest](https://vitest.dev). In `backend/` e in `frontend/`:
+
+```bash
+npm test
+```
+
+- **Backend** (`backend/tests/`): test unitari sulla validazione e test d'integrazione che chiamano le API vere con Supertest, su un database PostgreSQL. Coprono catalogo e filtri, registrazione, accesso, reset della password, limite ai tentativi, area personale e ordini. Per gli ordini verificano il totale calcolato dal server, il magazzino scalato in una transazione e due acquisti simultanei dell'ultimo pezzo.
+  I test usano un database separato, creato e riempito con `schema.sql` e `seed.sql` a ogni esecuzione: è quello di `DATABASE_URL` con `_test` in coda al nome (es. `music_store_test`), oppure quello indicato in `TEST_DATABASE_URL`. Il nome deve finire con `_test`, così il database di sviluppo non viene mai cancellato. Le email non vengono inviate.
+- **Frontend** (`src/**/*.test.ts(x)`, accanto al codice): Testing Library con jsdom e un finto `fetch`, senza backend. Coprono formattazione dei prezzi, filtri del catalogo nell'URL, carrello salvato nel browser, pagina del carrello e pagina di accesso.
 
 Il server parte su `http://localhost:3000`. Prova: `http://localhost:3000/api/health`
 
@@ -52,9 +67,45 @@ Il server parte su `http://localhost:3000`. Prova: `http://localhost:3000/api/he
 | Metodo | URL | Descrizione |
 |---|---|---|
 | GET | `/api/products` | Catalogo con filtri, ordinamento e paginazione |
-| GET | `/api/products/:id` | Dettaglio prodotto con caratteristiche tecniche e immagini |
+| GET | `/api/products/:slug` | Dettaglio prodotto con caratteristiche tecniche e immagini |
 | GET | `/api/categories` | Categorie con sottocategorie |
 | GET | `/api/brands` | Elenco marche |
+| GET | `/api/brands/:slug/products` | Prodotti di una marca |
+| POST | `/api/orders` | Crea un ordine, collegato all'utente se ha fatto l'accesso, e scala il magazzino |
+| POST | `/api/auth/register` | Crea un account e avvia la sessione |
+| POST | `/api/auth/login` | Avvia la sessione |
+| POST | `/api/auth/logout` | Chiude la sessione |
+| GET | `/api/auth/me` | Utente collegato, 401 se non c'è una sessione |
+| POST | `/api/auth/forgot-password` | Invia il link di reset; risponde allo stesso modo se l'email non è registrata |
+| POST | `/api/auth/reset-password` | Imposta la nuova password con il link ricevuto e chiude tutte le sessioni |
+| GET | `/api/account/orders` | Ordini dell'utente, paginati (`?page=2`) |
+| GET | `/api/account/orders/:id` | Dettaglio di un ordine dell'utente |
+| PATCH | `/api/account/profile` | Cambia nome ed email; per l'email serve la password attuale |
+| PUT | `/api/account/password` | Cambia la password e chiude le altre sessioni |
+| GET, POST | `/api/account/addresses` | Indirizzi salvati |
+| PUT, DELETE | `/api/account/addresses/:id` | Modifica o elimina un indirizzo |
+| POST | `/api/account/addresses/:id/default` | Imposta l'indirizzo predefinito |
+| GET, POST | `/api/account/payment-methods` | Metodi di pagamento salvati |
+| DELETE | `/api/account/payment-methods/:id` | Elimina un metodo di pagamento |
+| POST | `/api/account/payment-methods/:id/default` | Imposta il metodo predefinito |
+
+### Pannello admin
+
+Tutte le rotte rispondono 401 senza sessione e 403 a chi non è amministratore.
+
+| Metodo | URL | Descrizione |
+|---|---|---|
+| GET | `/api/admin/stats` | Ordini per stato, incassato, prodotti quasi esauriti |
+| GET | `/api/admin/orders` | Tutti gli ordini, paginati, filtrabili per stato (`?status=pending`) |
+| GET | `/api/admin/orders/:id` | Dettaglio di un ordine, con gli stati in cui può passare |
+| PATCH | `/api/admin/orders/:id/status` | Cambia lo stato; annullando, gli articoli tornano in magazzino |
+| GET | `/api/admin/products` | Tutti i prodotti, anche i nascosti (`?q=`, `?lowStock=true`) |
+| POST | `/api/admin/products` | Crea un prodotto con caratteristiche e immagini |
+| GET | `/api/admin/products/:id` | Il prodotto completo, per il form di modifica |
+| PUT | `/api/admin/products/:id` | Sostituisce tutti i dati del prodotto; lo slug resta lo stesso |
+| PATCH | `/api/admin/products/:id` | Modifica solo prezzo, magazzino, visibilità o evidenza |
+
+Il pagamento avviene alla consegna, quindi un ordine passa da *in lavorazione* a *spedito* e poi a *pagato*. Si può annullare finché non è pagato. I prodotti non si eliminano, perché gli ordini fanno riferimento a loro: per toglierli dal negozio si nascondono.
 
 ### Filtri di `/api/products`
 
@@ -62,10 +113,11 @@ Il server parte su `http://localhost:3000`. Prova: `http://localhost:3000/api/he
 |---|---|---|
 | `q` | `q=humbucker` | Cerca in nome, descrizione e codice articolo, tollerando gli errori di battitura |
 | `category` | `category=chitarre` | Slug categoria, include le sottocategorie |
-| `brand` | `brand=1,3` | Uno o più id di marca |
+| `brand` | `brand=pulse-audio,nordwood` | Uno o più slug di marca |
 | `minPrice` / `maxPrice` | `maxPrice=400` | Fascia di prezzo |
 | `inStock` | `inStock=true` | Solo prodotti disponibili |
 | `featured` | `featured=true` | Solo prodotti in evidenza |
+| `ids` | `ids=<uuid>,<uuid>` | Solo i prodotti indicati (usato dal carrello) |
 | `sort` | `sort=price_asc` | `newest`, `price_asc`, `price_desc`, `name` |
 | `page` / `limit` | `page=2&limit=12` | Paginazione |
 
@@ -73,6 +125,13 @@ Esempio: `/api/products?category=chitarre&maxPrice=400&sort=price_asc`
 
 ## Scelte tecniche
 
+- **Backend a tre livelli**: `routes/` collega URL e controller, `controllers/` legge e valida la richiesta e sceglie la risposta HTTP, `services/` contiene le query e la logica di business, senza conoscere Express.
+- **Sessione con JWT in un cookie `httpOnly` e `SameSite=Lax`**: JavaScript non può leggere il token e gli altri siti non possono usarlo. Online il sito e l'API devono stare sullo stesso dominio base (es. `www.example.com` e `api.example.com`), oppure l'API va inoltrata dal dominio del sito.
+- **Reset della password con link monouso** valido un'ora: nel database resta solo l'impronta SHA-256 del token, e il token viaggia dopo il `#` dell'URL, quindi non finisce nei log dei server. L'email parte con [Resend](https://resend.com), in HTML e in testo semplice. Se l'invio fallisce il link viene cancellato, così si può chiederne subito un altro invece di aspettare i 2 minuti fra una richiesta e l'altra.
+  Configurazione in `backend/.env`: `RESEND_API_KEY` (da [resend.com/api-keys](https://resend.com/api-keys)) e `MAIL_FROM`, un mittente con un dominio verificato su Resend. In sviluppo, senza `MAIL_FROM` si usa l'indirizzo di prova `onboarding@resend.dev`; senza `RESEND_API_KEY` il link viene stampato nella console del backend. In produzione il server non parte se manca una delle due.
+- **Pannello admin nello stesso frontend**, sotto `/admin`: React.lazy lo mette in un file JavaScript separato, che chi compra non scarica. Il frontend nasconde il pannello a chi non è admin solo per comodità; a proteggere i dati è il backend, con il middleware `requireAdmin` su tutte le rotte `/api/admin`. Un admin si crea solo con `npm run make-admin`, mai da un'API.
+- **Password con bcrypt e limite ai tentativi** su login e registrazione. Il limite è per indirizzo IP: dietro un proxy, online, va configurato `trust proxy` in Express.
+- **Nessun dato sensibile delle carte**: si salvano solo circuito, ultime 4 cifre, intestatario e scadenza. Per incassare davvero servirà un fornitore di pagamenti, come Stripe, che custodisca le carte al posto del negozio.
 - **TypeScript in modalità `strict`**, con i tipi delle risposte API raccolti in `src/types.ts` (riutilizzabili nel frontend).
 - **Validazione della query string**: i parametri vengono convertiti e controllati (`asString`, `asNumber`) invece di fidarsi di ciò che arriva dal client.
 
@@ -80,6 +139,10 @@ Esempio: `/api/products?category=chitarre&maxPrice=400&sort=price_asc`
 - **Ordinamento da una lista di valori ammessi**, mai inserito direttamente dall'input dell'utente.
 - **Categorie ad albero** con `parent_id`: filtrando per "Chitarre" si ottengono anche elettriche, acustiche e classiche.
 - **`unit_price` in `order_items`**: salva il prezzo al momento dell'acquisto, così gli ordini passati restano corretti se il prezzo cambia.
+- **Carrello nel browser, prezzi sul server**: `localStorage` conserva solo id e quantità; nomi, prezzi e disponibilità si leggono sempre dall'API, e il totale dell'ordine lo calcola il server.
+- **Ordine in una transazione con `SELECT … FOR UPDATE`**: due clienti simultanei non possono comprare lo stesso ultimo pezzo.
+- **Nessuna rotta per leggere un ordine senza login**: esporrebbe i dati di spedizione a chiunque abbia l'id dell'ordine.
+- **Chiavi primarie UUID** (`gen_random_uuid()`): gli id non rivelano quanti prodotti o ordini esistono. Il seed li ricava da numeri semplici, così restano uguali a ogni rilancio.
 - **Indici** su categoria, marca e prezzo per velocizzare i filtri del catalogo.
 - **Più immagini per prodotto** nella tabella `product_images`: la prima secondo `sort_order` è la copertina usata nelle card.
 - **Ricerca con `pg_trgm`**: trova i prodotti anche con errori di battitura, usando un indice GIN.

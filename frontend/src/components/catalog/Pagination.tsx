@@ -15,7 +15,7 @@ export function Pagination({ page, pages, onChange }: PaginationProps) {
       <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => onChange(page - 1)}>
         <ChevronLeft /> Precedente
       </Button>
-      <span className="text-sm text-muted-foreground">
+      <span className="text-silk text-muted-foreground tabular-nums">
         Pagina {page} di {pages}
       </span>
       <Button variant="outline" size="sm" disabled={page >= pages} onClick={() => onChange(page + 1)}>

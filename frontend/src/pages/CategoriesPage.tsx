@@ -13,8 +13,8 @@ export function CategoriesPage() {
       <title>Categorie — Sonora</title>
 
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">Categorie</h1>
-        <Link to="/catalogo" className="text-sm underline underline-offset-4">
+        <h1 className="text-display text-6xl md:text-8xl">Categorie</h1>
+        <Link to="/catalogo" className="text-silk underline underline-offset-4 hover:text-primary">
           Tutti i prodotti
         </Link>
       </div>
@@ -33,6 +33,7 @@ export function CategoriesPage() {
             name,
             description,
             to: `/categorie/${slug}`,
+            image: `/categorie/${slug}.svg`,
           }))}
         />
       )}

@@ -8,20 +8,34 @@
     "dev": "tsx watch --env-file=.env src/index.ts",
     "build": "tsc",
     "start": "node --env-file=.env dist/index.js",
-    "typecheck": "tsc --noEmit",
-    "db:setup": "set -a && . ./.env && set +a && psql \"$DATABASE_URL\" -q -1 -v ON_ERROR_STOP=1 -f db/schema.sql -f db/seed.sql"
+    "typecheck": "tsc --noEmit -p tsconfig.test.json",
+    "db:setup": "set -a && . ./.env && set +a && psql \"$DATABASE_URL\" -q -1 -v ON_ERROR_STOP=1 -f db/schema.sql -f db/seed.sql",
+    "db:migrate": "set -a && . ./.env && set +a && for f in db/migrations/*.sql; do psql \"$DATABASE_URL\" -q -1 -v ON_ERROR_STOP=1 -f \"$f\" || exit 1; done",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "make-admin": "tsx --env-file=.env scripts/make-admin.ts"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "express": "^4.21.2",
-    "pg": "^8.13.1"
+    "express-rate-limit": "^8.7.4",
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.13.1",
+    "resend": "^6.38.0"
   },
   "devDependencies": {
+    "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.10.0",
     "@types/pg": "^8.11.10",
+    "@types/supertest": "^7.2.1",
+    "supertest": "^7.3.2",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^5.1.0"
   }
 }

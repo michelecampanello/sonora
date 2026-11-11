@@ -1,115 +1,245 @@
-import type { FormEvent } from "react";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { useFetch } from "@/hooks/useFetch";
-import { brandsPath } from "@/lib/api";
-import type { Brand, CatalogFilters as Filters } from "@/lib/types";
+import { useState, type FormEvent, type ReactNode } from "react"
+import { ChevronDown, X } from "lucide-react"
+import { SortSelect } from "@/components/catalog/SortSelect"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { Switch } from "@/components/ui/switch"
+import { useFetch } from "@/hooks/useFetch"
+import { brandsPath } from "@/lib/api"
+import { cn } from "@/lib/utils"
+import type { Brand, CatalogFilters as Filters } from "@/lib/types"
 
 interface CatalogFiltersProps {
-  filters: Filters;
-  onChange: (changes: Partial<Filters>) => void;
-  onReset: () => void;
+  filters: Filters
+  categoryName: string | undefined
+  onChange: (changes: Partial<Filters>) => void
+  onReset: () => void
 }
 
-export function CatalogFilters({ filters, onChange, onReset }: CatalogFiltersProps) {
-  const { data: brands } = useFetch<Brand[]>(brandsPath);
+/** Bottone che apre il menu di un filtro, evidenziato quando il filtro è attivo */
+function FilterTrigger({
+  active,
+  children,
+}: {
+  active: boolean
+  children: ReactNode
+}) {
+  return (
+    <PopoverTrigger
+      render={
+        <Button variant="outline" className={cn(active && "border-primary")} />
+      }
+    >
+      {children}
+      <ChevronDown
+        data-icon="inline-end"
+        className="text-muted-foreground transition-transform group-aria-expanded/button:rotate-180"
+      />
+    </PopoverTrigger>
+  )
+}
 
-  const toggleBrand = (id: number, checked: boolean) => {
-    const next = checked ? [...filters.brands, id] : filters.brands.filter((b) => b !== id);
-    onChange({ brands: next });
-  };
+function priceLabel(min: string | undefined, max: string | undefined): string {
+  if (min && max) return `${min} – ${max} €`
+  return min ? `Da ${min} €` : `Fino a ${max} €`
+}
+
+export function CatalogFilters({
+  filters,
+  categoryName,
+  onChange,
+  onReset,
+}: CatalogFiltersProps) {
+  const { data: brands } = useFetch<Brand[]>(brandsPath)
+  const [priceOpen, setPriceOpen] = useState(false)
+
+  const toggleBrand = (slug: string, checked: boolean) => {
+    const next = checked
+      ? [...filters.brands, slug]
+      : filters.brands.filter((b) => b !== slug)
+    onChange({ brands: next })
+  }
 
   const applyPrice = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    const min = String(data.get("minPrice") ?? "").trim();
-    const max = String(data.get("maxPrice") ?? "").trim();
-    onChange({ minPrice: min || undefined, maxPrice: max || undefined });
-  };
+    event.preventDefault()
+    const data = new FormData(event.currentTarget)
+    let min = String(data.get("minPrice") ?? "").trim()
+    let max = String(data.get("maxPrice") ?? "").trim()
+    // Un intervallo invertito darebbe zero risultati: lo interpretiamo nel verso giusto
+    if (min && max && Number(min) > Number(max)) [min, max] = [max, min]
+    onChange({ minPrice: min || undefined, maxPrice: max || undefined })
+    setPriceOpen(false)
+  }
 
-  const hasActiveFilters =
-    filters.category !== undefined ||
-    filters.brands.length > 0 ||
-    filters.minPrice !== undefined ||
-    filters.maxPrice !== undefined ||
-    filters.inStock;
+  const hasPrice =
+    filters.minPrice !== undefined || filters.maxPrice !== undefined
+
+  const activeFilters: {
+    key: string
+    label: string
+    clear: Partial<Filters>
+  }[] = [
+    ...(filters.category
+      ? [
+          {
+            key: "category",
+            label: categoryName ?? filters.category,
+            clear: { category: undefined },
+          },
+        ]
+      : []),
+    ...(brands ?? [])
+      .filter((brand) => filters.brands.includes(brand.slug))
+      .map((brand) => ({
+        key: `brand-${brand.id}`,
+        label: brand.name,
+        clear: { brands: filters.brands.filter((b) => b !== brand.slug) },
+      })),
+    ...(hasPrice
+      ? [
+          {
+            key: "price",
+            label: priceLabel(filters.minPrice, filters.maxPrice),
+            clear: { minPrice: undefined, maxPrice: undefined },
+          },
+        ]
+      : []),
+    ...(filters.inStock
+      ? [
+          {
+            key: "inStock",
+            label: "Solo disponibili",
+            clear: { inStock: false },
+          },
+        ]
+      : []),
+  ]
 
   return (
-    <div className="flex flex-col gap-6">
-      <section aria-labelledby="filter-brands">
-        <h2 id="filter-brands" className="mb-3 text-sm font-semibold">
-          Marche
-        </h2>
-        <div className="flex flex-col gap-2.5">
-          {brands?.map((brand) => {
-            const id = `brand-${brand.id}`;
-            return (
-              <div key={brand.id} className="flex items-center gap-2">
-                <Checkbox
-                  id={id}
-                  checked={filters.brands.includes(brand.id)}
-                  onCheckedChange={(checked) => toggleBrand(brand.id, checked === true)}
-                />
-                <Label htmlFor={id} className="font-normal">
+    <section aria-label="Filtri" className="flex flex-col gap-3 border-y py-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <Popover>
+          <FilterTrigger active={filters.brands.length > 0}>
+            Marche
+            {filters.brands.length > 0 && (
+              <Badge>{filters.brands.length}</Badge>
+            )}
+          </FilterTrigger>
+          <PopoverContent
+            align="start"
+            aria-label="Filtra per marca"
+            className="w-56 p-1.5"
+          >
+            <div className="flex max-h-72 flex-col overflow-y-auto py-1">
+              {brands?.map((brand) => (
+                <Label
+                  key={brand.id}
+                  className="cursor-pointer rounded-md px-2 py-1.5 font-normal hover:bg-muted"
+                >
+                  <Checkbox
+                    checked={filters.brands.includes(brand.slug)}
+                    onCheckedChange={(checked) =>
+                      toggleBrand(brand.slug, checked)
+                    }
+                  />
                   {brand.name}
                 </Label>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        <Popover open={priceOpen} onOpenChange={setPriceOpen}>
+          <FilterTrigger active={hasPrice}>Prezzo</FilterTrigger>
+          <PopoverContent
+            align="start"
+            aria-label="Filtra per prezzo"
+            className="w-64 p-3"
+          >
+            <form onSubmit={applyPrice} className="flex flex-col gap-3">
+              <div className="flex gap-2">
+                <div className="flex flex-1 flex-col gap-1.5">
+                  <Label
+                    htmlFor="minPrice"
+                    className="text-xs text-muted-foreground"
+                  >
+                    Da (€)
+                  </Label>
+                  <Input
+                    id="minPrice"
+                    name="minPrice"
+                    type="number"
+                    min={0}
+                    inputMode="numeric"
+                    defaultValue={filters.minPrice}
+                  />
+                </div>
+                <div className="flex flex-1 flex-col gap-1.5">
+                  <Label
+                    htmlFor="maxPrice"
+                    className="text-xs text-muted-foreground"
+                  >
+                    A (€)
+                  </Label>
+                  <Input
+                    id="maxPrice"
+                    name="maxPrice"
+                    type="number"
+                    min={0}
+                    inputMode="numeric"
+                    defaultValue={filters.maxPrice}
+                  />
+                </div>
               </div>
-            );
-          })}
-        </div>
-      </section>
+              <Button type="submit">Applica</Button>
+            </form>
+          </PopoverContent>
+        </Popover>
 
-      <Separator />
-
-      <section aria-labelledby="filter-price">
-        <h2 id="filter-price" className="mb-3 text-sm font-semibold">
-          Prezzo (€)
-        </h2>
-        {/* key: quando i prezzi nell'URL cambiano (es. "Azzera filtri"), il form si ricrea con i nuovi valori */}
-        <form
-          key={`${filters.minPrice}-${filters.maxPrice}`}
-          onSubmit={applyPrice}
-          className="flex items-end gap-2"
-        >
-          <div className="flex flex-1 flex-col gap-1">
-            <Label htmlFor="minPrice" className="text-xs text-muted-foreground">
-              Da
-            </Label>
-            <Input id="minPrice" name="minPrice" type="number" min={0} inputMode="numeric" defaultValue={filters.minPrice} />
-          </div>
-          <div className="flex flex-1 flex-col gap-1">
-            <Label htmlFor="maxPrice" className="text-xs text-muted-foreground">
-              A
-            </Label>
-            <Input id="maxPrice" name="maxPrice" type="number" min={0} inputMode="numeric" defaultValue={filters.maxPrice} />
-          </div>
-          <Button type="submit" variant="outline">
-            Applica
-          </Button>
-        </form>
-      </section>
-
-      <Separator />
-
-      <div className="flex items-center gap-2">
-        <Checkbox
-          id="inStock"
-          checked={filters.inStock}
-          onCheckedChange={(checked) => onChange({ inStock: checked === true })}
-        />
-        <Label htmlFor="inStock" className="font-normal">
+        <Label className="ml-1 h-8 cursor-pointer font-normal">
+          <Switch
+            size="sm"
+            checked={filters.inStock}
+            onCheckedChange={(checked) => onChange({ inStock: checked })}
+          />
           Solo disponibili
         </Label>
+
+        <div className="ml-auto">
+          <SortSelect
+            value={filters.sort}
+            onChange={(sort) => onChange({ sort })}
+          />
+        </div>
       </div>
 
-      {hasActiveFilters && (
-        <Button variant="ghost" onClick={onReset} className="self-start">
-          Azzera filtri
-        </Button>
+      {activeFilters.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          {activeFilters.map(({ key, label, clear }) => (
+            <Button
+              key={key}
+              variant="secondary"
+              size="sm"
+              aria-label={`Rimuovi filtro ${label}`}
+              onClick={() => onChange(clear)}
+            >
+              {label}
+              <X data-icon="inline-end" />
+            </Button>
+          ))}
+          <Button variant="link" size="sm" onClick={onReset}>
+            Azzera filtri
+          </Button>
+        </div>
       )}
-    </div>
-  );
+    </section>
+  )
 }
