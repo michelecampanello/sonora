@@ -10,6 +10,7 @@ import { Search, ShoppingCart, User } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { useAuth } from "@/hooks/useAuth"
 import { useCart } from "@/hooks/useCart"
+import { AccountMenu } from "./AccountMenu"
 import { LevelMark } from "./LevelMark"
 
 const NAV_LINK =
@@ -76,18 +77,7 @@ export function Header() {
           />
         </form>
 
-        {user && (
-          <Link
-            to="/account"
-            aria-label="Il mio account"
-            className="flex h-9 items-center gap-2 text-silk transition-colors hover:text-primary"
-          >
-            <User className="size-4" aria-hidden />
-            <span className="hidden max-w-40 truncate lg:inline">
-              {user.name}
-            </span>
-          </Link>
-        )}
+        {user && <AccountMenu user={user} />}
         {!user && !loading && (
           <Link
             to="/accedi"
