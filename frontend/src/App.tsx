@@ -8,6 +8,7 @@ import { OrderDetailPage } from "@/pages/account/OrderDetailPage";
 import { OrdersPage } from "@/pages/account/OrdersPage";
 import { PaymentMethodsPage } from "@/pages/account/PaymentMethodsPage";
 import { SettingsPage } from "@/pages/account/SettingsPage";
+import { AboutPage } from "@/pages/AboutPage";
 import { CartPage } from "@/pages/CartPage";
 import { CatalogPage } from "@/pages/CatalogPage";
 import { CategoriesPage } from "@/pages/CategoriesPage";
@@ -34,6 +35,7 @@ export default function App() {
         <Route path="categorie" element={<CategoriesPage />} />
         <Route path="categorie/:slug" element={<SubcategoriesPage />} />
         <Route path="prodotti/:slug" element={<ProductPage />} />
+        <Route path="chi-siamo" element={<AboutPage />} />
         <Route path="accedi" element={<LoginPage />} />
         <Route path="registrati" element={<RegisterPage />} />
         <Route path="password-dimenticata" element={<ForgotPasswordPage />} />

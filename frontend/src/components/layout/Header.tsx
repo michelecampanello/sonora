@@ -16,6 +16,12 @@ import { LevelMark } from "./LevelMark"
 const NAV_LINK =
   "text-silk border-b-2 border-transparent py-1 text-muted-foreground transition-colors hover:text-foreground aria-[current=page]:border-signal aria-[current=page]:text-foreground"
 
+const LINKS = [
+  { href: "/catalogo", tag: "Catalogo" },
+  { href: "/categorie", tag: "Categorie" },
+  { href: "/chi-siamo", tag: "Chi Siamo" },
+]
+
 export function Header() {
   const navigate = useNavigate()
   const [params] = useSearchParams()
@@ -43,12 +49,11 @@ export function Header() {
           aria-label="Principale"
           className="order-last flex w-full shrink-0 gap-5 sm:order-none sm:w-auto"
         >
-          <NavLink to="/catalogo" className={NAV_LINK}>
-            Catalogo
-          </NavLink>
-          <NavLink to="/categorie" className={NAV_LINK}>
-            Categorie
-          </NavLink>
+          {LINKS.map((link) => (
+            <NavLink key={link.href} to={link.href} className={NAV_LINK}>
+              {link.tag}
+            </NavLink>
+          ))}
           {user?.role === "admin" && (
             <NavLink to="/admin" className={NAV_LINK}>
               Admin
