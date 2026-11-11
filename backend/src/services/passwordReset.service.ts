@@ -27,8 +27,15 @@ export async function requestPasswordReset(email: string): Promise<void> {
   );
   if (!rowCount) return;
 
-  // Il token sta dopo il #: i browser non lo inviano ai server, quindi non finisce nei log
-  await sendPasswordResetEmail(email, `${FRONTEND_ORIGIN}/reimposta-password#token=${token}`);
+  try {
+    // Il token sta dopo il #: i browser non lo inviano ai server, quindi non finisce nei log
+    await sendPasswordResetEmail(email, `${FRONTEND_ORIGIN}/reimposta-password#token=${token}`);
+  } catch (err) {
+    // L'email non è partita: si toglie il link, altrimenti l'attesa di 2 minuti impedirebbe di chiederne un altro.
+    // Solo se è ancora questo: nel frattempo potrebbe esserne stato creato uno nuovo.
+    await pool.query("DELETE FROM password_reset_tokens WHERE token_hash = $1", [hashToken(token)]);
+    throw err;
+  }
 }
 
 /**

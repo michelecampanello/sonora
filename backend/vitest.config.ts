@@ -13,7 +13,8 @@ export default defineConfig({
       DATABASE_URL: testDatabaseUrl(),
       JWT_SECRET: "segreto-usato-solo-nei-test-lungo-almeno-32-caratteri",
       FRONTEND_ORIGIN: "http://localhost:5173",
-      SMTP_URL: "", // le email non partono mai: i test che le controllano usano un finto invio
+      RESEND_API_KEY: "", // le email non partono mai: i test che le controllano usano un finto Resend
+      MAIL_FROM: "",
     },
   },
 });

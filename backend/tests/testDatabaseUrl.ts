@@ -9,7 +9,7 @@ import { parseEnv } from "node:util";
  */
 export function testDatabaseUrl(): string {
   const explicit = process.env.TEST_DATABASE_URL;
-  // Dal file .env si legge solo DATABASE_URL: il resto, come SMTP_URL, non deve arrivare ai test
+  // Dal file .env si legge solo DATABASE_URL: il resto, come RESEND_API_KEY, non deve arrivare ai test
   const devUrl = existsSync(".env") ? parseEnv(readFileSync(".env", "utf8")).DATABASE_URL : undefined;
 
   const url = new URL(explicit ?? devUrl ?? "postgres://postgres:password@localhost:5432/music_store");
