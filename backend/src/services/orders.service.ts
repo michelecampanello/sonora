@@ -34,7 +34,14 @@ export async function listUserOrders(userId: string, page: number): Promise<Pagi
 }
 
 /** Un ordine dell'utente, oppure null se non esiste o appartiene a qualcun altro */
-export async function findUserOrder(userId: string, orderId: string): Promise<OrderDetail | null> {
+export const findUserOrder = (userId: string, orderId: string): Promise<OrderDetail | null> =>
+  findOrder(orderId, userId);
+
+/** Un ordine qualsiasi, per il pannello admin */
+export const findAnyOrder = (orderId: string): Promise<OrderDetail | null> => findOrder(orderId, null);
+
+/** ownerId null: nessun filtro sul proprietario. Va passato null in modo esplicito, mai per dimenticanza. */
+async function findOrder(orderId: string, ownerId: string | null): Promise<OrderDetail | null> {
   const orderResult = await pool.query<{
     id: string;
     status: OrderStatus;
@@ -48,8 +55,8 @@ export async function findUserOrder(userId: string, orderId: string): Promise<Or
     province: string;
   }>(
     `SELECT id, status, total, created_at, customer_name, customer_email, address, city, postal_code, province
-     FROM orders WHERE id = $1 AND user_id = $2`,
-    [orderId, userId],
+     FROM orders WHERE id = $1 AND ($2::uuid IS NULL OR user_id = $2)`,
+    [orderId, ownerId],
   );
   const order = orderResult.rows[0];
   if (!order) return null;

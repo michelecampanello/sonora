@@ -8,6 +8,10 @@ const STATUS: Record<OrderStatus, [label: string, led: string]> = {
   cancelled: ["Annullato", "bg-destructive"],
 };
 
+export const STATUS_LABELS = Object.fromEntries(
+  Object.entries(STATUS).map(([status, [label]]) => [status, label]),
+) as Record<OrderStatus, string>;
+
 export function OrderStatusBadge({ status }: { status: OrderStatus }) {
   const [label, led] = STATUS[status];
   return (

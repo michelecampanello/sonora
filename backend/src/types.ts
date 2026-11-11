@@ -89,7 +89,8 @@ export interface OrderConfirmation {
   items: OrderItem[];
 }
 
-export type OrderStatus = "pending" | "paid" | "shipped" | "cancelled";
+export const ORDER_STATUSES = ["pending", "shipped", "paid", "cancelled"] as const;
+export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
 /** Ordine nell'elenco dell'area personale */
 export interface OrderSummary {
@@ -112,6 +113,37 @@ export interface OrderDetailItem {
 export interface OrderDetail extends Omit<OrderSummary, "item_count"> {
   customer: OrderCustomer;
   items: OrderDetailItem[];
+}
+
+/** Ordine nell'elenco del pannello admin: come quello del cliente, più chi l'ha fatto */
+export interface AdminOrderSummary extends OrderSummary {
+  customer_name: string;
+  customer_email: string;
+  /** null per gli ordini fatti da ospite */
+  user_id: string | null;
+}
+
+/** Prodotto nel pannello admin: include i nascosti e i campi che il negozio non mostra */
+export interface AdminProduct {
+  id: string;
+  sku: string;
+  slug: string;
+  name: string;
+  price: string;
+  stock: number;
+  active: boolean;
+  featured: boolean;
+  brand: string;
+  category: string;
+}
+
+export interface AdminStats {
+  orders: Record<OrderStatus, number>;
+  /** Totale degli ordini pagati: con il pagamento alla consegna, i soldi davvero incassati */
+  revenue: string;
+  activeProducts: number;
+  /** Prodotti in vendita con pochi pezzi rimasti (LOW_STOCK_THRESHOLD o meno) */
+  lowStockProducts: number;
 }
 
 export interface Address {

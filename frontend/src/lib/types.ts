@@ -12,7 +12,8 @@ export interface AuthResponse {
   user: User;
 }
 
-export type OrderStatus = "pending" | "paid" | "shipped" | "cancelled";
+export const ORDER_STATUSES = ["pending", "shipped", "paid", "cancelled"] as const;
+export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
 export interface OrderSummary {
   id: string;
@@ -151,6 +152,10 @@ export const SORT_OPTIONS = {
 
 export type SortKey = keyof typeof SORT_OPTIONS;
 
+// Object.hasOwn e non `in`: valori come "toString" sono proprietà ereditate, non ordinamenti ammessi.
+export const isSortKey = (value: string | null): value is SortKey =>
+  value !== null && Object.hasOwn(SORT_OPTIONS, value);
+
 export interface CatalogFilters {
   q?: string;
   category?: string;
@@ -160,4 +165,37 @@ export interface CatalogFilters {
   inStock: boolean;
   sort: SortKey;
   page: number;
+}
+
+// Pannello admin
+
+export interface AdminOrderSummary extends OrderSummary {
+  customer_name: string;
+  customer_email: string;
+  user_id: string | null; // null per gli ordini fatti da ospite
+}
+
+/** Dettaglio di un ordine nel pannello, con gli stati in cui può passare */
+export interface AdminOrderDetail extends OrderDetail {
+  next_statuses: OrderStatus[];
+}
+
+export interface AdminProduct {
+  id: string;
+  sku: string;
+  slug: string;
+  name: string;
+  price: string;
+  stock: number;
+  active: boolean;
+  featured: boolean;
+  brand: string;
+  category: string;
+}
+
+export interface AdminStats {
+  orders: Record<OrderStatus, number>;
+  revenue: string; // totale degli ordini pagati
+  activeProducts: number;
+  lowStockProducts: number;
 }

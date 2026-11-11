@@ -42,3 +42,16 @@ export const requireAuth: RequestHandler<any, any, any, any> = (req, res, next) 
   }
   next();
 };
+
+/**
+ * Da usare dopo loadUser e requireAuth sulle rotte del pannello admin.
+ * È questo controllo a proteggere i dati: nascondere le pagine nel frontend non basta,
+ * perché chiunque può chiamare le API direttamente.
+ */
+export const requireAdmin: RequestHandler<any, any, any, any> = (req, res, next) => {
+  if (req.user?.role !== "admin") {
+    res.status(403).json({ error: "Accesso riservato agli amministratori" });
+    return;
+  }
+  next();
+};

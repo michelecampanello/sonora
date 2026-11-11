@@ -2,7 +2,7 @@ import { Link } from "react-router";
 import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 import { OrderTotals } from "@/components/cart/OrderTotals";
 import { ProductImage } from "@/components/catalog/ProductImage";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -89,9 +89,9 @@ export function CartPage() {
         <div className="flex flex-col items-center gap-3 border border-dashed p-10 text-center">
           <ShoppingCart className="size-8 text-muted-foreground" strokeWidth={1.5} aria-hidden />
           <p className="font-medium">Il carrello è vuoto.</p>
-          <Button variant="outline" nativeButton={false} render={<Link to="/catalogo" />}>
+          <Link to="/catalogo" className={buttonVariants({ variant: "outline" })}>
             Vai al catalogo
-          </Button>
+          </Link>
         </div>
       ) : error ? (
         <div className="rounded-lg border border-destructive/50 p-6 text-center">
@@ -117,9 +117,9 @@ export function CartPage() {
                   Vai alla cassa
                 </Button>
               ) : (
-                <Button size="lg" nativeButton={false} render={<Link to="/checkout" />}>
+                <Link to="/checkout" className={buttonVariants({ size: "lg" })}>
                   Vai alla cassa
-                </Button>
+                </Link>
               )}
             </CardContent>
           </Card>

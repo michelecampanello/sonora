@@ -1,0 +1,9 @@
+{
+  // Controllo dei tipi per test e configurazione di Vitest: non genera file, quindi non finisce in dist/
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "noEmit": true
+  },
+  "include": ["src", "tests", "scripts", "vitest.config.ts"]
+}

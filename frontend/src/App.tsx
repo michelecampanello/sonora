@@ -1,4 +1,6 @@
+import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Layout } from "@/components/layout/Layout";
 import { AccountLayout } from "@/pages/account/AccountLayout";
 import { AddressesPage } from "@/pages/account/AddressesPage";
@@ -19,6 +21,9 @@ import { NotFoundPage } from "@/pages/NotFoundPage";
 import { OrderConfirmedPage } from "@/pages/OrderConfirmedPage";
 import { ProductPage } from "@/pages/ProductPage";
 import { SubcategoriesPage } from "@/pages/SubcategoriesPage";
+
+// Il pannello admin è in un file JavaScript a parte: chi compra non lo scarica mai
+const AdminRoutes = lazy(() => import("@/pages/admin/AdminRoutes"));
 
 export default function App() {
   return (
@@ -41,6 +46,14 @@ export default function App() {
           <Route path="pagamenti" element={<PaymentMethodsPage />} />
           <Route path="impostazioni" element={<SettingsPage />} />
         </Route>
+        <Route
+          path="admin/*"
+          element={
+            <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+              <AdminRoutes />
+            </Suspense>
+          }
+        />
         <Route path="carrello" element={<CartPage />} />
         <Route path="checkout" element={<CheckoutPage />} />
         <Route path="ordine-confermato" element={<OrderConfirmedPage />} />

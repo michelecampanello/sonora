@@ -1,9 +1,6 @@
 import { useSearchParams } from "react-router";
 import { isSlug } from "@/lib/utils";
-import { SORT_OPTIONS, type CatalogFilters, type SortKey } from "@/lib/types";
-
-const isSortKey = (value: string | null): value is SortKey =>
-  value !== null && value in SORT_OPTIONS;
+import { isSortKey, type CatalogFilters } from "@/lib/types";
 
 /** Legge i filtri dall'URL (es. /catalogo?category=chitarre&sort=name&page=2) */
 export function filtersFromParams(params: URLSearchParams): CatalogFilters {

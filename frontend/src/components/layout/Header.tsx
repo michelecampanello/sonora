@@ -48,6 +48,11 @@ export function Header() {
           <NavLink to="/categorie" className={NAV_LINK}>
             Categorie
           </NavLink>
+          {user?.role === "admin" && (
+            <NavLink to="/admin" className={NAV_LINK}>
+              Admin
+            </NavLink>
+          )}
         </nav>
 
         <form

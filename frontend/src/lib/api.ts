@@ -84,3 +84,20 @@ export const paymentMethodPath = (id: string) => `${paymentMethodsPath}/${encode
 export const productPath = (slug: string) => `/api/products/${encodeURIComponent(slug)}`;
 export const categoriesPath = "/api/categories";
 export const brandsPath = "/api/brands";
+
+// Pannello admin
+export const adminStatsPath = "/api/admin/stats";
+export function adminOrdersPath({ status, page }: { status?: string | undefined; page: number }): string {
+  const params = new URLSearchParams({ page: String(page) });
+  if (status) params.set("status", status);
+  return `/api/admin/orders?${params.toString()}`;
+}
+export const adminOrderPath = (id: string) => `/api/admin/orders/${encodeURIComponent(id)}`;
+export const adminOrderStatusPath = (id: string) => `${adminOrderPath(id)}/status`;
+export function adminProductsPath({ q, lowStock, page }: { q?: string | undefined; lowStock: boolean; page: number }): string {
+  const params = new URLSearchParams({ page: String(page) });
+  if (q) params.set("q", q);
+  if (lowStock) params.set("lowStock", "true");
+  return `/api/admin/products?${params.toString()}`;
+}
+export const adminProductPath = (id: string) => `/api/admin/products/${encodeURIComponent(id)}`;

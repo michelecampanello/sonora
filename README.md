@@ -12,7 +12,7 @@ Progetto full stack in TypeScript: React (frontend) + Node.js/Express (backend) 
 - [x] Tappa 3 — Carrello
 - [x] Tappa 4 — Registrazione e login (JWT)
 - [x] Tappa 5 — Checkout e area personale (ordini, indirizzi, metodi di pagamento, impostazioni). Il pagamento è solo alla consegna
-- [ ] Tappa 6 — Pannello admin
+- [ ] Tappa 6 — Pannello admin: fatti ordini (stati, annullamento con ritorno in magazzino), prezzi, magazzino e visibilità dei prodotti. Mancano creazione e modifica completa dei prodotti
 - [ ] Tappa 7 — Pubblicazione online
 
 ## Avvio in locale
@@ -45,6 +45,20 @@ Altri comandi:
 | `npm run typecheck` | Controlla i tipi senza generare file |
 | `npm run build` | Compila TypeScript in JavaScript nella cartella `dist/` |
 | `npm start` | Avvia la versione compilata (quella da usare online) |
+| `npm test` | Esegue i test (`npm run test:watch` li rilancia a ogni modifica) |
+| `npm run make-admin -- email@example.com` | Dà il ruolo di amministratore a un account già registrato |
+
+## Test
+
+Entrambe le parti usano [Vitest](https://vitest.dev). In `backend/` e in `frontend/`:
+
+```bash
+npm test
+```
+
+- **Backend** (`backend/tests/`): test unitari sulla validazione e test d'integrazione che chiamano le API vere con Supertest, su un database PostgreSQL. Coprono catalogo e filtri, registrazione, accesso, reset della password, limite ai tentativi, area personale e ordini. Per gli ordini verificano il totale calcolato dal server, il magazzino scalato in una transazione e due acquisti simultanei dell'ultimo pezzo.
+  I test usano un database separato, creato e riempito con `schema.sql` e `seed.sql` a ogni esecuzione: è quello di `DATABASE_URL` con `_test` in coda al nome (es. `music_store_test`), oppure quello indicato in `TEST_DATABASE_URL`. Il nome deve finire con `_test`, così il database di sviluppo non viene mai cancellato. Le email non vengono inviate.
+- **Frontend** (`src/**/*.test.ts(x)`, accanto al codice): Testing Library con jsdom e un finto `fetch`, senza backend. Coprono formattazione dei prezzi, filtri del catalogo nell'URL, carrello salvato nel browser, pagina del carrello e pagina di accesso.
 
 Il server parte su `http://localhost:3000`. Prova: `http://localhost:3000/api/health`
 
@@ -75,6 +89,21 @@ Il server parte su `http://localhost:3000`. Prova: `http://localhost:3000/api/he
 | DELETE | `/api/account/payment-methods/:id` | Elimina un metodo di pagamento |
 | POST | `/api/account/payment-methods/:id/default` | Imposta il metodo predefinito |
 
+### Pannello admin
+
+Tutte le rotte rispondono 401 senza sessione e 403 a chi non è amministratore.
+
+| Metodo | URL | Descrizione |
+|---|---|---|
+| GET | `/api/admin/stats` | Ordini per stato, incassato, prodotti quasi esauriti |
+| GET | `/api/admin/orders` | Tutti gli ordini, paginati, filtrabili per stato (`?status=pending`) |
+| GET | `/api/admin/orders/:id` | Dettaglio di un ordine, con gli stati in cui può passare |
+| PATCH | `/api/admin/orders/:id/status` | Cambia lo stato; annullando, gli articoli tornano in magazzino |
+| GET | `/api/admin/products` | Tutti i prodotti, anche i nascosti (`?q=`, `?lowStock=true`) |
+| PATCH | `/api/admin/products/:id` | Modifica prezzo, magazzino, visibilità o evidenza |
+
+Il pagamento avviene alla consegna, quindi un ordine passa da *in lavorazione* a *spedito* e poi a *pagato*. Si può annullare finché non è pagato.
+
 ### Filtri di `/api/products`
 
 | Parametro | Esempio | Significato |
@@ -96,6 +125,7 @@ Esempio: `/api/products?category=chitarre&maxPrice=400&sort=price_asc`
 - **Backend a tre livelli**: `routes/` collega URL e controller, `controllers/` legge e valida la richiesta e sceglie la risposta HTTP, `services/` contiene le query e la logica di business, senza conoscere Express.
 - **Sessione con JWT in un cookie `httpOnly` e `SameSite=Lax`**: JavaScript non può leggere il token e gli altri siti non possono usarlo. Online il sito e l'API devono stare sullo stesso dominio base (es. `www.example.com` e `api.example.com`), oppure l'API va inoltrata dal dominio del sito.
 - **Reset della password con link monouso** valido un'ora: nel database resta solo l'impronta SHA-256 del token. In sviluppo, senza `SMTP_URL`, il link viene stampato nella console del backend.
+- **Pannello admin nello stesso frontend**, sotto `/admin`: React.lazy lo mette in un file JavaScript separato, che chi compra non scarica. Il frontend nasconde il pannello a chi non è admin solo per comodità; a proteggere i dati è il backend, con il middleware `requireAdmin` su tutte le rotte `/api/admin`. Un admin si crea solo con `npm run make-admin`, mai da un'API.
 - **Password con bcrypt e limite ai tentativi** su login e registrazione. Il limite è per indirizzo IP: dietro un proxy, online, va configurato `trust proxy` in Express.
 - **Nessun dato sensibile delle carte**: si salvano solo circuito, ultime 4 cifre, intestatario e scadenza. Per incassare davvero servirà un fornitore di pagamenti, come Stripe, che custodisca le carte al posto del negozio.
 - **TypeScript in modalità `strict`**, con i tipi delle risposte API raccolti in `src/types.ts` (riutilizzabili nel frontend).

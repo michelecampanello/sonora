@@ -1,11 +1,9 @@
-import { SORT_OPTIONS, type SortKey } from "@/lib/types";
+import { isSortKey, SORT_OPTIONS, type SortKey } from "@/lib/types";
 
 interface SortSelectProps {
   value: SortKey;
   onChange: (value: SortKey) => void;
 }
-
-const isSortKey = (value: string): value is SortKey => value in SORT_OPTIONS;
 
 // Usiamo il <select> nativo: su mobile apre il selettore del sistema ed è accessibile senza sforzo.
 export function SortSelect({ value, onChange }: SortSelectProps) {

@@ -8,9 +8,12 @@
     "dev": "tsx watch --env-file=.env src/index.ts",
     "build": "tsc",
     "start": "node --env-file=.env dist/index.js",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit -p tsconfig.test.json",
     "db:setup": "set -a && . ./.env && set +a && psql \"$DATABASE_URL\" -q -1 -v ON_ERROR_STOP=1 -f db/schema.sql -f db/seed.sql",
-    "db:migrate": "set -a && . ./.env && set +a && for f in db/migrations/*.sql; do psql \"$DATABASE_URL\" -q -1 -v ON_ERROR_STOP=1 -f \"$f\" || exit 1; done"
+    "db:migrate": "set -a && . ./.env && set +a && for f in db/migrations/*.sql; do psql \"$DATABASE_URL\" -q -1 -v ON_ERROR_STOP=1 -f \"$f\" || exit 1; done",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "make-admin": "tsx --env-file=.env scripts/make-admin.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -30,7 +33,10 @@
     "@types/node": "^22.10.0",
     "@types/nodemailer": "^8.0.2",
     "@types/pg": "^8.11.10",
+    "@types/supertest": "^7.2.1",
+    "supertest": "^7.3.2",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^5.1.0"
   }
 }

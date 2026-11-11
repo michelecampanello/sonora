@@ -1,7 +1,7 @@
 import { Link, Navigate, useLocation } from "react-router";
 import { CheckCircle2 } from "lucide-react";
 import { OrderTotals } from "@/components/cart/OrderTotals";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatPrice } from "@/lib/format";
 import type { OrderConfirmation } from "@/lib/types";
@@ -48,9 +48,9 @@ export function OrderConfirmedPage() {
         </CardContent>
       </Card>
 
-      <Button variant="outline" className="self-center" nativeButton={false} render={<Link to="/catalogo" />}>
+      <Link to="/catalogo" className={buttonVariants({ variant: "outline", className: "self-center" })}>
         Continua gli acquisti
-      </Button>
+      </Link>
     </div>
   );
 }
