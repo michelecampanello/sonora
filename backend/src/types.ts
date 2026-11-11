@@ -137,6 +137,19 @@ export interface AdminProduct {
   category: string;
 }
 
+/** Prodotto completo nel form del pannello: tutti i campi modificabili */
+export interface AdminProductDetail extends AdminProduct {
+  description: string | null;
+  category_id: string;
+  brand_id: string;
+  specs: ProductSpec[];
+  /** Nell'ordine in cui vengono mostrate: la prima è la copertina */
+  images: { url: string; alt: string | null }[];
+}
+
+/** Quello che il pannello invia per creare o modificare un prodotto */
+export type ProductInput = Omit<AdminProductDetail, "id" | "slug" | "brand" | "category">;
+
 export interface AdminStats {
   orders: Record<OrderStatus, number>;
   /** Totale degli ordini pagati: con il pagamento alla consegna, i soldi davvero incassati */

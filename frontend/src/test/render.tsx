@@ -6,7 +6,8 @@ import { MemoryRouter, Route, Routes, useLocation } from "react-router";
 /** Mostra il percorso attuale, per controllare dove porta un link o un redirect */
 function CurrentPath() {
   const location = useLocation();
-  return <output data-testid="current-path">{location.pathname}</output>;
+  // Uno span e non un <output>: <output> ha il ruolo "status" e verrebbe scambiato per un avviso della pagina
+  return <span data-testid="current-path">{location.pathname}</span>;
 }
 
 /**

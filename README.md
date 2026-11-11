@@ -12,7 +12,7 @@ Progetto full stack in TypeScript: React (frontend) + Node.js/Express (backend) 
 - [x] Tappa 3 — Carrello
 - [x] Tappa 4 — Registrazione e login (JWT)
 - [x] Tappa 5 — Checkout e area personale (ordini, indirizzi, metodi di pagamento, impostazioni). Il pagamento è solo alla consegna
-- [ ] Tappa 6 — Pannello admin: fatti ordini (stati, annullamento con ritorno in magazzino), prezzi, magazzino e visibilità dei prodotti. Mancano creazione e modifica completa dei prodotti
+- [x] Tappa 6 — Pannello admin: ordini (stati, annullamento con ritorno in magazzino), creazione e modifica dei prodotti con caratteristiche e immagini. Le immagini si indicano con un indirizzo: il caricamento dei file non c'è ancora
 - [ ] Tappa 7 — Pubblicazione online
 
 ## Avvio in locale
@@ -100,9 +100,12 @@ Tutte le rotte rispondono 401 senza sessione e 403 a chi non è amministratore.
 | GET | `/api/admin/orders/:id` | Dettaglio di un ordine, con gli stati in cui può passare |
 | PATCH | `/api/admin/orders/:id/status` | Cambia lo stato; annullando, gli articoli tornano in magazzino |
 | GET | `/api/admin/products` | Tutti i prodotti, anche i nascosti (`?q=`, `?lowStock=true`) |
-| PATCH | `/api/admin/products/:id` | Modifica prezzo, magazzino, visibilità o evidenza |
+| POST | `/api/admin/products` | Crea un prodotto con caratteristiche e immagini |
+| GET | `/api/admin/products/:id` | Il prodotto completo, per il form di modifica |
+| PUT | `/api/admin/products/:id` | Sostituisce tutti i dati del prodotto; lo slug resta lo stesso |
+| PATCH | `/api/admin/products/:id` | Modifica solo prezzo, magazzino, visibilità o evidenza |
 
-Il pagamento avviene alla consegna, quindi un ordine passa da *in lavorazione* a *spedito* e poi a *pagato*. Si può annullare finché non è pagato.
+Il pagamento avviene alla consegna, quindi un ordine passa da *in lavorazione* a *spedito* e poi a *pagato*. Si può annullare finché non è pagato. I prodotti non si eliminano, perché gli ordini fanno riferimento a loro: per toglierli dal negozio si nascondono.
 
 ### Filtri di `/api/products`
 

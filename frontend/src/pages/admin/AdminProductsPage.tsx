@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from "react";
-import { useSearchParams } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { AccountSection, EmptyState, ListSkeleton, LoadError } from "@/components/account/AccountParts";
 import { Pagination } from "@/components/catalog/Pagination";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useFetch } from "@/hooks/useFetch";
 import { adminProductPath, adminProductsPath, sendJson } from "@/lib/api";
@@ -40,7 +40,12 @@ function ProductRow({ initial }: { initial: AdminProduct }) {
     <li className="border-b py-3">
       <form onSubmit={save} className="grid items-center gap-3 md:grid-cols-[minmax(0,1fr)_7rem_6rem_auto_auto_6rem]">
         <div className="min-w-0">
-          <p className={saved.active ? "font-medium" : "font-medium text-muted-foreground line-through"}>{saved.name}</p>
+          <Link
+            to={`/admin/prodotti/${saved.id}`}
+            className={saved.active ? "font-medium hover:underline" : "font-medium text-muted-foreground line-through hover:underline"}
+          >
+            {saved.name}
+          </Link>
           <p className="text-sm text-muted-foreground">
             {saved.sku} · {saved.brand} · {saved.category}
           </p>
@@ -103,7 +108,14 @@ export function AdminProductsPage() {
   };
 
   return (
-    <AccountSection title="Prodotti">
+    <AccountSection
+      title="Prodotti"
+      action={
+        <Link to="/admin/prodotti/nuovo" className={buttonVariants()}>
+          Nuovo prodotto
+        </Link>
+      }
+    >
       <div className="flex flex-wrap items-center gap-4">
         <form role="search" onSubmit={search} className="flex min-w-0 flex-1 gap-2">
           <Input key={q} name="q" type="search" defaultValue={q} placeholder="Nome o codice articolo" aria-label="Cerca prodotti" />

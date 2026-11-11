@@ -199,3 +199,15 @@ export interface AdminStats {
   activeProducts: number;
   lowStockProducts: number;
 }
+
+/** Prodotto completo nel form del pannello */
+export interface AdminProductDetail extends AdminProduct {
+  description: string | null;
+  category_id: string;
+  brand_id: string;
+  specs: ProductSpec[];
+  images: { url: string; alt: string | null }[]; // la prima è la copertina
+}
+
+/** Quello che il form invia per creare o modificare un prodotto */
+export type ProductInput = Omit<AdminProductDetail, "id" | "slug" | "brand" | "category">;

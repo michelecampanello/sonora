@@ -24,8 +24,8 @@ export function mockApi(routes: Record<string, Handler>) {
   return fetchMock;
 }
 
-/** Il body JSON inviato con la richiesta n-esima a un percorso */
+/** Il body JSON della n-esima richiesta con body (POST, PUT, PATCH) inviata a un percorso */
 export function sentBody(fetchMock: ReturnType<typeof mockApi>, path: string, n = 0): unknown {
-  const call = fetchMock.mock.calls.filter(([input]) => String(input).startsWith(path))[n];
+  const call = fetchMock.mock.calls.filter(([input, init]) => String(input).startsWith(path) && init?.body)[n];
   return call?.[1]?.body ? JSON.parse(String(call[1].body)) : undefined;
 }

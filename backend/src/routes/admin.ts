@@ -1,12 +1,12 @@
 import { Router } from "express";
+import { getAdminOrder, getAdminOrders, getAdminStats, patchOrderStatus } from "../controllers/admin.controller.js";
 import {
-  getAdminOrder,
-  getAdminOrders,
+  getAdminProduct,
   getAdminProducts,
-  getAdminStats,
-  patchOrderStatus,
   patchProduct,
-} from "../controllers/admin.controller.js";
+  postProduct,
+  putProduct,
+} from "../controllers/adminProducts.controller.js";
 import { loadUser, requireAdmin, requireAuth } from "../middleware/auth.middleware.js";
 
 const router = Router();
@@ -21,6 +21,9 @@ router.get("/orders/:id", getAdminOrder);
 router.patch("/orders/:id/status", patchOrderStatus);
 
 router.get("/products", getAdminProducts);
-router.patch("/products/:id", patchProduct);
+router.post("/products", postProduct);
+router.get("/products/:id", getAdminProduct);
+router.put("/products/:id", putProduct); // tutti i dati, dal form di modifica
+router.patch("/products/:id", patchProduct); // solo alcuni campi, dall'elenco
 
 export default router;

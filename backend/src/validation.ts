@@ -10,6 +10,12 @@ export const asRecord = (value: unknown): Record<string, unknown> => (isRecord(v
 
 export const text = (value: unknown): string => (typeof value === "string" ? value.trim() : "");
 
+/** Il numero di pagina dalla query string: 1 se manca o non è un intero positivo */
+export const pageFrom = (value: unknown): number => {
+  const page = Number(value);
+  return Number.isSafeInteger(page) && page > 0 ? page : 1;
+};
+
 export const isPersonName = (value: string): boolean => value.length >= 2 && value.length <= 100;
 
 /** Il messaggio d'errore se la nuova password non è accettabile, altrimenti null */
