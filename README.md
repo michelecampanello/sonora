@@ -104,24 +104,34 @@ npm test
 ```
 
 - **Backend** (`backend/tests/`): test unitari su validazione, contenuto delle email e firma di Cloudinary, e test d'integrazione che chiamano le API vere con Supertest, su un database PostgreSQL. Coprono catalogo e filtri, registrazione, accesso, reset della password, limite ai tentativi, area personale, ordini, recensioni, pannello admin e invio delle email. Per gli ordini verificano il totale calcolato dal server, il magazzino scalato in una transazione e due acquisti simultanei dell'ultimo pezzo.
-  I test usano un database separato, creato e riempito con `schema.sql` e `seed.sql` a ogni esecuzione: è quello di `DATABASE_URL` con `_test` in coda al nome (es. `music_store_test`), oppure quello indicato in `TEST_DATABASE_URL`. Il nome deve finire con `_test`, così il database di sviluppo non viene mai cancellato. Le email non vengono inviate e Cloudinary non viene mai chiamato davvero.
+  I test usano un database separato, creato e riempito con `schema.sql` e `seed.sql` a ogni esecuzione: è quello di `DATABASE_URL` con `_test` in coda al nome (es. `music_store_test`), oppure quello indicato in `TEST_DATABASE_URL`. Il nome deve finire con `_test`, così il database di sviluppo non viene mai cancellato, e senza `TEST_DATABASE_URL` il database deve essere su questo computer: i test non creano database su server remoti. Le email non vengono inviate e Cloudinary non viene mai chiamato davvero.
 - **Frontend** (`src/**/*.test.ts(x)`, accanto al codice): Testing Library con jsdom e un finto `fetch`, senza backend. Coprono formattazione, filtri del catalogo nell'URL, carrello, accesso, menu dell'account, tema, impostazioni, recensioni, modifica dei prodotti dal pannello e dalla scheda, metadati SEO e caricamento delle immagini.
 
 ## Pubblicazione su Vercel
 
-Tutto il progetto va su un unico progetto Vercel, con un solo dominio:
+Il repository è un unico progetto Vercel con due **servizi**, definiti in [`vercel.json`](vercel.json) e pubblicati sullo stesso dominio:
 
-- il frontend è un sito statico, creato da `npm run build` in `frontend/dist`;
-- il backend Express gira come funzione serverless in [`api/index.js`](api/index.js), che importa la versione compilata in `backend/dist`;
-- [`vercel.json`](vercel.json) installa e compila le due parti, manda le richieste `/api/*` alla funzione e tutte le altre a `index.html`, così le pagine di React Router funzionano anche aprendole da un link. I file in `/assets` hanno nomi che cambiano a ogni versione, quindi i browser li tengono in cache per un anno.
+| Servizio | Cartella | Cosa è | Pubblico su |
+|---|---|---|---|
+| `backend` | `backend/` | L'API Express, compilata con `npm run build` in `dist/` ed eseguita come funzione da `dist/app.js` | `/api/*` |
+| `frontend` | `frontend/` | Il sito React, creato da Vite in `dist/` | tutto il resto |
 
-Sito e API sullo stesso dominio: il cookie di sessione funziona senza configurare CORS.
+- Ogni servizio si installa e si compila da solo nella sua cartella.
+- Le regole `rewrites` in cima a `vercel.json` decidono chi risponde: `/api/*` va al backend, che riceve l'indirizzo completo (es. `/api/products`), quindi le rotte di Express sono le stesse del server locale; tutto il resto va al frontend.
+- Dentro il servizio `frontend`, ogni pagina che non è un file porta a `index.html`, così le pagine di React Router funzionano anche aprendole da un link. I file in `/assets` hanno nomi che cambiano a ogni versione, quindi i browser li tengono in cache per un anno.
+- I servizi non si chiamano tra loro dal server: il frontend è un sito statico, e le chiamate a `/api` partono dal browser verso lo stesso dominio. Per questo non servono *bindings*, e il cookie di sessione funziona senza configurare CORS.
+- Le funzioni girano nella regione `fra1` (Francoforte).
+
+Per provare tutto insieme in locale come su Vercel: `vercel dev` dalla radice del repository (richiede la [CLI di Vercel](https://vercel.com/docs/cli) e il progetto collegato con `vercel link`). Per lo sviluppo di tutti i giorni bastano i due `npm run dev` descritti sopra.
 
 ### 1. Database
 
-Serve un PostgreSQL raggiungibile da internet, per esempio [Neon](https://neon.tech) (piano gratuito; scegli la regione di Francoforte, vicina alla regione `fra1` delle funzioni in `vercel.json`). Usa l'indirizzo **con il pooling delle connessioni** (in Neon contiene `-pooler`): le funzioni serverless aprono molte connessioni brevi.
+Serve un PostgreSQL raggiungibile da internet, per esempio [Neon](https://neon.tech) (piano gratuito; scegli la regione di Francoforte, vicina alle funzioni). Neon dà due indirizzi dello stesso database:
 
-Crea le tabelle e i dati di prova dal tuo computer, indicando l'indirizzo del database online:
+- **con il pooling** (l'host contiene `-pooler`): va in `DATABASE_URL` su Vercel, perché le funzioni aprono molte connessioni brevi;
+- **senza pooling**: va usato per creare le tabelle, caricare i dati di prova e lanciare le migrazioni. Il pooler riusa le sessioni del server tra connessioni diverse, e le funzioni temporanee del seed (`pg_temp.seed_id`) risulterebbero già esistenti.
+
+Crea le tabelle e i dati di prova dal tuo computer, con l'indirizzo **senza pooling**:
 
 ```bash
 cd backend
@@ -130,20 +140,22 @@ psql "postgres://…" -q -1 -v ON_ERROR_STOP=1 -f db/schema.sql -f db/seed.sql
 
 Per gli aggiornamenti successivi lancia invece le migrazioni (`db/migrations/*.sql`) con lo stesso indirizzo: non cancellano i dati.
 
+Se nel `backend/.env` del tuo computer metti l'indirizzo di Neon, per i test indica un database locale con `TEST_DATABASE_URL`: senza, i test si fermano invece di creare database online.
+
 ### 2. Progetto Vercel
 
-Importa il repository su [vercel.com/new](https://vercel.com/new) lasciando la cartella principale (*Root Directory*) alla radice del repository: comandi di installazione e build sono già in `vercel.json`.
+Importa il repository su [vercel.com/new](https://vercel.com/new) lasciando la cartella principale (*Root Directory*) alla radice del repository: i servizi, con i loro comandi di build, sono già in `vercel.json`.
 
 Nelle impostazioni del progetto (*Settings → Environment Variables*) aggiungi:
 
 | Variabile | Valore |
 |---|---|
-| `DATABASE_URL` | L'indirizzo del database, con il pooling |
+| `DATABASE_URL` | L'indirizzo del database **con il pooling** |
 | `JWT_SECRET` | Almeno 32 caratteri casuali: `node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"` |
-| `FRONTEND_ORIGIN` | L'indirizzo del sito, es. `https://sonora.vercel.app`: serve ai link nelle email |
 | `RESEND_API_KEY` | Chiave di [Resend](https://resend.com/api-keys) |
 | `MAIL_FROM` | Mittente con un dominio verificato su Resend, es. `Sonora <noreply@tuodominio.it>` |
 | `CLOUDINARY_URL` | Da [console.cloudinary.com](https://console.cloudinary.com), alla voce *API Keys* |
+| `FRONTEND_ORIGIN` | Facoltativa: l'indirizzo del sito per i link nelle email. Se manca si usa il dominio di produzione del progetto Vercel |
 
 Non impostare `NODE_ENV`: Vercel lo mette già a `production` nelle funzioni, e impostato a mano durante l'installazione salterebbe gli strumenti di build. `VITE_API_URL` non serve, perché l'API è sullo stesso dominio.
 
@@ -157,7 +169,7 @@ In produzione il backend non parte senza `RESEND_API_KEY` e `MAIL_FROM`: senza l
 ### Cosa cambia rispetto al server locale
 
 - Le email e la pulizia delle foto su Cloudinary partono dopo la risposta: su Vercel passano da `waitUntil` ([`backend/src/background.ts`](backend/src/background.ts)), che tiene attiva la funzione finché hanno finito. In locale non cambia nulla.
-- Il pool di connessioni a Postgres è registrato con `attachDatabasePool`, così Vercel chiude le connessioni inattive prima di sospendere la funzione.
+- Il pool di connessioni a Postgres è registrato con `attachDatabasePool`, così Vercel chiude le connessioni inattive prima di sospendere la funzione. Il backend non imposta parametri di sessione sulla connessione, che il pooler di Neon rifiuterebbe: la soglia della ricerca tollerante agli errori sta nella query.
 - Express si fida dell'header `X-Forwarded-For` di Vercel (`trust proxy`), per vedere l'IP vero di chi visita.
 - Il limite ai tentativi di accesso è tenuto in memoria, quindi vale per ogni istanza della funzione e non per tutto il sito insieme: protegge dai tentativi ripetuti, ma con traffico alto Vercel può dividerli su più istanze. Per un limite condiviso servirebbe uno store esterno, come Redis.
 
@@ -250,7 +262,7 @@ Esempio: `/api/products?category=chitarre&maxPrice=400&sort=price_asc`
 - **Indici** su categoria, marca e prezzo per velocizzare i filtri del catalogo.
 - **Più immagini per prodotto** nella tabella `product_images`: la prima secondo `sort_order` è la copertina usata nelle card.
 - **Immagini dei dati di prova su Cloudinary**: PNG caricati con `npm run upload-images` nella cartella `sonora/seed`, separata dalle foto caricate dal pannello. Non hanno un `public_id` salvato nel database, quindi togliendole da un prodotto non vengono cancellate.
-- **Ricerca con `pg_trgm`**: trova i prodotti anche con errori di battitura, usando un indice GIN.
+- **Ricerca con `pg_trgm`**: trova i prodotti anche con errori di battitura (`word_similarity` con una soglia di 0,5 scritta nella query), con indici GIN per le ricerche `ILIKE`.
 - **Prodotti nascosti con `active = false`**: spariscono dal negozio senza essere cancellati, così gli ordini passati restano validi.
 - **`updated_at` gestita da un trigger**: si aggiorna a ogni modifica del prodotto, senza dipendere dal codice dell'API.
 - **Recensioni con un vincolo `UNIQUE (product_id, user_id)`**: scriverne una seconda la modifica invece di aggiungerla. Media e numero arrivano con il catalogo, e l'autore si mostra con nome e iniziale del cognome. "Acquisto verificato" si calcola dagli ordini non annullati, non si salva.
