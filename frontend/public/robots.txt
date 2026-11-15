@@ -1,0 +1,8 @@
+# Le pagine personali, il carrello e il pannello admin non vanno nei risultati di ricerca
+User-agent: *
+Disallow: /account
+Disallow: /admin
+Disallow: /carrello
+Disallow: /checkout
+Disallow: /ordine-confermato
+Disallow: /reimposta-password

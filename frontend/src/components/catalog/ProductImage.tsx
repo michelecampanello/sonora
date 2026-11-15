@@ -10,6 +10,7 @@ import {
   Piano,
   type LucideIcon,
 } from "lucide-react";
+import { imageSrcSet, optimizedImageUrl } from "@/lib/cloudinary";
 import { cn } from "@/lib/utils";
 import { SoundSignature } from "./SoundSignature";
 
@@ -35,13 +36,33 @@ interface ProductImageProps {
   imageUrl: string | null;
   categorySlug: string;
   className?: string;
+  /** Quanto è larga l'immagine nella pagina: serve al browser per scaricare la versione giusta */
+  sizes?: string;
+  /** Per l'immagine principale della pagina: scaricata subito, prima delle altre */
+  priority?: boolean;
 }
 
-export function ProductImage({ name, imageUrl, categorySlug, className }: ProductImageProps) {
+// Le card del catalogo: una colonna su mobile, poi due, tre e quattro
+const CARD_SIZES = "(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw";
+
+export function ProductImage({ name, imageUrl, categorySlug, className, sizes = CARD_SIZES, priority = false }: ProductImageProps) {
   const base = cn("aspect-square w-full rounded-md bg-muted", className);
 
   if (imageUrl) {
-    return <img src={imageUrl} alt={name} loading="lazy" className={cn(base, "object-cover")} />;
+    return (
+      <img
+        src={optimizedImageUrl(imageUrl, 960)}
+        srcSet={imageSrcSet(imageUrl)}
+        sizes={sizes}
+        alt={name}
+        width={960}
+        height={960}
+        loading={priority ? "eager" : "lazy"}
+        fetchPriority={priority ? "high" : "auto"}
+        decoding="async"
+        className={cn(base, "h-auto object-cover")}
+      />
+    );
   }
 
   return (

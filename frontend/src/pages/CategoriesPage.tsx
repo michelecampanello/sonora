@@ -3,6 +3,7 @@ import { CategoryGrid, CategoryGridSkeleton } from "@/components/catalog/Categor
 import { useFetch } from "@/hooks/useFetch";
 import { categoriesPath } from "@/lib/api";
 import type { Category } from "@/lib/types";
+import { PageMeta } from "@/components/PageMeta";
 
 /** Elenco delle categorie principali: ognuna porta alla pagina con le sue sottocategorie */
 export function CategoriesPage() {
@@ -10,7 +11,7 @@ export function CategoriesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <title>Categorie — Sonora</title>
+      <PageMeta title="Categorie" description="Tutte le categorie di Sonora: chitarre, bassi, batterie, tastiere, amplificatori, audio e registrazione, accessori." />
 
       <div className="flex flex-wrap items-end justify-between gap-3">
         <h1 className="text-display text-6xl md:text-8xl">Categorie</h1>

@@ -3,6 +3,7 @@ import { AuthForm } from "@/components/auth/AuthForm";
 import { FormField } from "@/components/FormField";
 import { setUser } from "@/hooks/useAuth";
 import { postJson, resetPasswordPath } from "@/lib/api";
+import { PageMeta } from "@/components/PageMeta";
 
 export function ResetPasswordPage() {
   const navigate = useNavigate();
@@ -12,7 +13,7 @@ export function ResetPasswordPage() {
   if (!token) {
     return (
       <div className="mx-auto flex w-full max-w-md flex-col gap-6">
-        <title>Link non valido — Sonora</title>
+        <PageMeta title="Link non valido" noindex />
         <h1 className="text-display text-6xl md:text-8xl">Link non valido</h1>
         <p className="border-t pt-6">Questo link di reset è incompleto. Apri quello ricevuto per email oppure richiedine uno nuovo.</p>
         <Link to="/password-dimenticata" className="text-sm underline underline-offset-4 hover:text-primary">

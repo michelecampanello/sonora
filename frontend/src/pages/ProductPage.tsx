@@ -9,6 +9,38 @@ import { useFetch } from "@/hooks/useFetch";
 import { productPath } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 import type { ProductDetail } from "@/lib/types";
+import { PageMeta } from "@/components/PageMeta";
+
+/** Description per i motori di ricerca: la descrizione del prodotto, accorciata, o un riassunto */
+function productDescription(product: ProductDetail): string {
+  const text = product.description ?? `${product.name} di ${product.brand}, nella categoria ${product.category}. Prezzo ${formatPrice(product.price)}.`;
+  return text.length > 160 ? `${text.slice(0, 157).trimEnd()}…` : text;
+}
+
+/** Dati strutturati schema.org: Google può mostrare prezzo e disponibilità direttamente nei risultati */
+function ProductJsonLd({ product }: { product: ProductDetail }) {
+  const data = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    sku: product.sku,
+    description: product.description ?? undefined,
+    brand: { "@type": "Brand", name: product.brand },
+    category: product.category,
+    image: product.images.length > 0 ? product.images.map((image) => image.url) : undefined,
+    offers: {
+      "@type": "Offer",
+      url: `${window.location.origin}/prodotti/${product.slug}`,
+      price: product.price,
+      priceCurrency: "EUR",
+      availability: product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+    },
+  };
+  // "<" diventa \u003c: un nome con "</script>" non può chiudere il tag in anticipo
+  return (
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data).replace(/</g, "\\u003c") }} />
+  );
+}
 
 export function ProductPage() {
   const { slug = "" } = useParams();
@@ -18,7 +50,7 @@ export function ProductPage() {
   if (error) {
     return (
       <div className="flex flex-col items-center gap-4 py-16 text-center">
-        <title>Prodotto non trovato — Sonora</title>
+        <PageMeta title="Prodotto non trovato" noindex />
         <h1 className="text-2xl font-semibold">Prodotto non trovato</h1>
         <p className="text-muted-foreground">{error}</p>
         <Link to="/catalogo" className="underline underline-offset-4">
@@ -34,7 +66,12 @@ export function ProductPage() {
 
   return (
     <article className="flex flex-col gap-6">
-      <title>{`${product.name} — Sonora`}</title>
+      <PageMeta
+        title={product.name}
+        description={productDescription(product)}
+        image={product.images[0]?.url}
+      />
+      <ProductJsonLd product={product} />
 
       <nav aria-label="Percorso" className="text-silk flex items-center gap-1 text-muted-foreground">
         <ChevronLeft className="size-3.5" aria-hidden />

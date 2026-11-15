@@ -7,6 +7,7 @@ import { useFetch } from "@/hooks/useFetch";
 import { categoriesPath, productsPath } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { Category, Paginated, ProductSummary } from "@/lib/types";
+import { PageMeta } from "@/components/PageMeta";
 
 /** Titolo della pagina in base a ricerca e categoria attive */
 function catalogHeading(q: string | undefined, categoryName: string | undefined): string {
@@ -37,7 +38,7 @@ export function CatalogPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <title>{`${heading} — Sonora`}</title>
+      <PageMeta title={heading} />
 
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
         <h1 className="text-display text-6xl md:text-8xl">{heading}</h1>

@@ -39,7 +39,7 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur-md">
-      <div className="mx-auto flex min-h-16 max-w-[96rem] flex-wrap items-center gap-x-6 gap-y-1 px-4 py-2 sm:flex-nowrap sm:py-0 md:px-8">
+      <div className="mx-auto flex min-h-16 max-w-384 flex-wrap items-center gap-x-6 gap-y-1 px-4 py-2 sm:flex-nowrap sm:py-0 md:px-8">
         <Link to="/" className="flex shrink-0 items-center gap-2">
           <LevelMark className="text-primary" />
           <span className="text-display text-3xl">Sonora</span>
@@ -48,7 +48,7 @@ export function Header() {
         {/* Su mobile i link vanno su una seconda riga, per lasciare spazio alla ricerca */}
         <nav
           aria-label="Principale"
-          className="order-last flex w-full shrink-0 gap-5 sm:order-none sm:w-auto"
+          className="order-last flex w-full shrink-0 gap-5 sm:order-0 sm:w-auto"
         >
           {LINKS.map((link) => (
             <NavLink key={link.href} to={link.href} className={NAV_LINK}>

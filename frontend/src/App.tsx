@@ -1,29 +1,37 @@
-import { lazy, Suspense } from "react";
+import { type ComponentType, lazy } from "react";
 import { Navigate, Route, Routes } from "react-router";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Layout } from "@/components/layout/Layout";
 import { AccountLayout } from "@/pages/account/AccountLayout";
-import { AddressesPage } from "@/pages/account/AddressesPage";
-import { OrderDetailPage } from "@/pages/account/OrderDetailPage";
-import { OrdersPage } from "@/pages/account/OrdersPage";
-import { PaymentMethodsPage } from "@/pages/account/PaymentMethodsPage";
-import { SettingsPage } from "@/pages/account/SettingsPage";
-import { AboutPage } from "@/pages/AboutPage";
-import { CartPage } from "@/pages/CartPage";
-import { CatalogPage } from "@/pages/CatalogPage";
-import { CategoriesPage } from "@/pages/CategoriesPage";
-import { CheckoutPage } from "@/pages/CheckoutPage";
 import { LandingPage } from "@/pages/LandingPage";
-import { LoginPage } from "@/pages/LoginPage";
-import { RegisterPage } from "@/pages/RegisterPage";
-import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
-import { ResetPasswordPage } from "@/pages/ResetPasswordPage";
-import { NotFoundPage } from "@/pages/NotFoundPage";
-import { OrderConfirmedPage } from "@/pages/OrderConfirmedPage";
-import { ProductPage } from "@/pages/ProductPage";
-import { SubcategoriesPage } from "@/pages/SubcategoriesPage";
 
-// Il pannello admin è in un file JavaScript a parte: chi compra non lo scarica mai
+/**
+ * Ogni pagina è in un file JavaScript a parte, scaricato solo quando serve: la home parte con il minimo indispensabile.
+ * La home resta nel file principale, perché è la prima pagina che vede quasi chiunque.
+ */
+function page<K extends string>(load: () => Promise<Record<K, ComponentType>>, name: K) {
+  return lazy(async () => ({ default: (await load())[name] }));
+}
+
+const AddressesPage = page(() => import("@/pages/account/AddressesPage"), "AddressesPage");
+const OrderDetailPage = page(() => import("@/pages/account/OrderDetailPage"), "OrderDetailPage");
+const OrdersPage = page(() => import("@/pages/account/OrdersPage"), "OrdersPage");
+const PaymentMethodsPage = page(() => import("@/pages/account/PaymentMethodsPage"), "PaymentMethodsPage");
+const SettingsPage = page(() => import("@/pages/account/SettingsPage"), "SettingsPage");
+const AboutPage = page(() => import("@/pages/AboutPage"), "AboutPage");
+const CartPage = page(() => import("@/pages/CartPage"), "CartPage");
+const CatalogPage = page(() => import("@/pages/CatalogPage"), "CatalogPage");
+const CategoriesPage = page(() => import("@/pages/CategoriesPage"), "CategoriesPage");
+const CheckoutPage = page(() => import("@/pages/CheckoutPage"), "CheckoutPage");
+const LoginPage = page(() => import("@/pages/LoginPage"), "LoginPage");
+const RegisterPage = page(() => import("@/pages/RegisterPage"), "RegisterPage");
+const ForgotPasswordPage = page(() => import("@/pages/ForgotPasswordPage"), "ForgotPasswordPage");
+const ResetPasswordPage = page(() => import("@/pages/ResetPasswordPage"), "ResetPasswordPage");
+const NotFoundPage = page(() => import("@/pages/NotFoundPage"), "NotFoundPage");
+const OrderConfirmedPage = page(() => import("@/pages/OrderConfirmedPage"), "OrderConfirmedPage");
+const ProductPage = page(() => import("@/pages/ProductPage"), "ProductPage");
+const SubcategoriesPage = page(() => import("@/pages/SubcategoriesPage"), "SubcategoriesPage");
+
+// Il pannello admin è in un file a parte anche lui: chi compra non lo scarica mai
 const AdminRoutes = lazy(() => import("@/pages/admin/AdminRoutes"));
 
 export default function App() {
@@ -48,14 +56,7 @@ export default function App() {
           <Route path="pagamenti" element={<PaymentMethodsPage />} />
           <Route path="impostazioni" element={<SettingsPage />} />
         </Route>
-        <Route
-          path="admin/*"
-          element={
-            <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-              <AdminRoutes />
-            </Suspense>
-          }
-        />
+        <Route path="admin/*" element={<AdminRoutes />} />
         <Route path="carrello" element={<CartPage />} />
         <Route path="checkout" element={<CheckoutPage />} />
         <Route path="ordine-confermato" element={<OrderConfirmedPage />} />

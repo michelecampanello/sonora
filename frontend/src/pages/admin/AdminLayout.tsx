@@ -1,4 +1,5 @@
 import { Navigate, NavLink, Outlet, useLocation } from "react-router";
+import { PageMeta } from "@/components/PageMeta";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { NotFoundPage } from "@/pages/NotFoundPage";
@@ -27,6 +28,7 @@ export function AdminLayout() {
 
   return (
     <div className="grid gap-8 lg:grid-cols-[12rem_minmax(0,1fr)] lg:gap-12">
+      <PageMeta title="Admin" noindex />
       <aside className="flex min-w-0 flex-col gap-4">
         <p className="text-silk text-signal">Pannello admin</p>
         <nav aria-label="Pannello admin" className="flex gap-5 overflow-x-auto lg:flex-col lg:gap-3 lg:overflow-visible">

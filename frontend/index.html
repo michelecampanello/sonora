@@ -1,10 +1,30 @@
 <!doctype html>
-<html lang="en">
+<html lang="it">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sonora</title>
+    <title>Sonora — Strumenti musicali</title>
+    <meta name="description" content="Chitarre, bassi, batterie, tastiere e attrezzatura da studio: il catalogo di Sonora, con schede tecniche complete." />
+
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <!-- Barra del browser su mobile: petrolio di giorno, il "palco" di sera -->
+    <meta name="theme-color" content="#1F5866" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#121A1C" media="(prefers-color-scheme: dark)" />
+
+    <!-- Anteprima quando un link viene condiviso -->
+    <meta property="og:site_name" content="Sonora" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="it_IT" />
+    <meta property="og:title" content="Sonora — Strumenti musicali" />
+    <meta property="og:description" content="Chitarre, bassi, batterie, tastiere e attrezzatura da studio, con schede tecniche complete." />
+    <meta property="og:image" content="/icon-512.png" />
+    <meta name="twitter:card" content="summary" />
+
+    <!-- Le foto dei prodotti arrivano da Cloudinary: apriamo la connessione in anticipo -->
+    <link rel="preconnect" href="https://res.cloudinary.com" />
     <!-- Applica il tema salvato prima del primo disegno, per evitare il lampo chiaro in modalità scura.
          La chiave deve coincidere con THEME_STORAGE_KEY in src/lib/theme.ts -->
     <script>

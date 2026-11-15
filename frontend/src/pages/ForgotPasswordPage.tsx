@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { FormField } from "@/components/FormField";
 import { forgotPasswordPath, postJson } from "@/lib/api";
+import { PageMeta } from "@/components/PageMeta";
 
 export function ForgotPasswordPage() {
   const [sentTo, setSentTo] = useState<string>();
@@ -10,7 +11,7 @@ export function ForgotPasswordPage() {
   if (sentTo) {
     return (
       <div className="mx-auto flex w-full max-w-md flex-col gap-6">
-        <title>Controlla la posta — Sonora</title>
+        <PageMeta title="Controlla la posta" noindex />
         <h1 className="text-display text-6xl md:text-8xl">Controlla la posta</h1>
         <p role="status" className="border-t pt-6">
           Se esiste un account con <span className="font-medium break-all">{sentTo}</span>, riceverai a breve un link per

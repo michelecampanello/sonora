@@ -11,6 +11,7 @@ import { useFetch } from "@/hooks/useFetch";
 import { addressesPath, ApiError, ordersPath, postJson } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 import type { Address, OrderConfirmation, OrderCustomer } from "@/lib/types";
+import { PageMeta } from "@/components/PageMeta";
 
 export function CheckoutPage() {
   const navigate = useNavigate();
@@ -70,7 +71,7 @@ export function CheckoutPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <title>Checkout — Sonora</title>
+      <PageMeta title="Checkout" noindex />
       <h1 className="text-display text-6xl md:text-8xl">Checkout</h1>
       {!user && !authLoading && (
         <p className="text-sm text-muted-foreground">

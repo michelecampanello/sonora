@@ -11,12 +11,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PageMeta } from "@/components/PageMeta";
 
 /** Titolo e contenuto di una sezione dell'area personale */
 export function AccountSection({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
   return (
     <section className="flex min-w-0 flex-col gap-6">
-      <title>{`${title} — Sonora`}</title>
+      <PageMeta title={title} noindex />
       <div className="flex flex-wrap items-end justify-between gap-3">
         <h1 className="text-display text-5xl md:text-7xl">{title}</h1>
         {action}

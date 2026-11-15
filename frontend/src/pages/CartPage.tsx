@@ -13,6 +13,7 @@ import {
   type CartLine,
 } from "@/hooks/useCart";
 import { formatPrice } from "@/lib/format";
+import { PageMeta } from "@/components/PageMeta";
 
 function CartRow({ line }: { line: CartLine }) {
   const { product, quantity } = line;
@@ -21,7 +22,7 @@ function CartRow({ line }: { line: CartLine }) {
   return (
     <li className="flex gap-4 py-4">
       <Link to={`/prodotti/${product.slug}`} className="w-20 shrink-0 sm:w-24">
-        <ProductImage name={product.name} imageUrl={product.image_url} categorySlug={product.category_slug} />
+        <ProductImage name={product.name} imageUrl={product.image_url} categorySlug={product.category_slug} sizes="6rem" />
       </Link>
 
       <div className="flex min-w-0 flex-1 flex-col gap-2">
@@ -82,7 +83,7 @@ export function CartPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <title>Carrello — Sonora</title>
+      <PageMeta title="Carrello" noindex />
       <h1 className="text-display text-6xl md:text-8xl">Carrello</h1>
 
       {count === 0 ? (

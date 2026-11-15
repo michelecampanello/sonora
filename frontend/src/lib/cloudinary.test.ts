@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_IMAGE_BYTES, uploadImage } from "@/lib/cloudinary";
+import { imageSrcSet, MAX_IMAGE_BYTES, optimizedImageUrl, uploadImage } from "@/lib/cloudinary";
 import { mockApi } from "@/test/mockApi";
 
 const SIGNATURE = {
@@ -59,5 +59,26 @@ describe("uploadImage", () => {
   it("riporta l'errore del backend se Cloudinary non è configurato", async () => {
     mockApi({ "POST /api/admin/uploads/signature": { status: 503, body: { error: "Il caricamento delle immagini non è configurato" } } });
     await expect(uploadImage(photo())).rejects.toThrow("Il caricamento delle immagini non è configurato");
+  });
+});
+
+describe("optimizedImageUrl e imageSrcSet", () => {
+  const photoUrl = "https://res.cloudinary.com/demo/image/upload/v1794398400/sonora/prodotti/basso.jpg";
+
+  it("chiede a Cloudinary la larghezza giusta in formato e qualità automatici", () => {
+    expect(optimizedImageUrl(photoUrl, 640)).toBe(
+      "https://res.cloudinary.com/demo/image/upload/f_auto,q_auto,c_limit,w_640/v1794398400/sonora/prodotti/basso.jpg",
+    );
+  });
+
+  it("propone al browser più larghezze", () => {
+    const srcSet = imageSrcSet(photoUrl);
+    expect(srcSet).toContain("/f_auto,q_auto,c_limit,w_320/v1794398400/sonora/prodotti/basso.jpg 320w");
+    expect(srcSet).toContain("/f_auto,q_auto,c_limit,w_1280/v1794398400/sonora/prodotti/basso.jpg 1280w");
+  });
+
+  it("lascia com'è un'immagine che non è su Cloudinary", () => {
+    expect(optimizedImageUrl("/prodotti/basso.svg", 640)).toBe("/prodotti/basso.svg");
+    expect(imageSrcSet("/prodotti/basso.svg")).toBeUndefined();
   });
 });

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router";
+import { PageMeta } from "@/components/PageMeta";
 
 const REPOSITORY_URL = "https://github.com/michelecampanello/sonora";
 
@@ -24,7 +25,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 export function AboutPage() {
   return (
     <div className="flex flex-col gap-10 md:gap-14">
-      <title>Chi siamo — Sonora</title>
+      <PageMeta title="Chi siamo" description="Sonora è un progetto portfolio: un negozio di strumenti musicali dimostrativo, realizzato con React, Node.js e PostgreSQL." />
 
       <div className="flex flex-col gap-6">
         <h1 className="text-display text-6xl md:text-8xl">Chi siamo</h1>

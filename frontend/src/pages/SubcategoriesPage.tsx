@@ -4,6 +4,7 @@ import { CategoryGrid, CategoryGridSkeleton } from "@/components/catalog/Categor
 import { useFetch } from "@/hooks/useFetch";
 import { categoriesPath } from "@/lib/api";
 import type { Category } from "@/lib/types";
+import { PageMeta } from "@/components/PageMeta";
 
 const catalogUrl = (slug: string) => `/catalogo?category=${encodeURIComponent(slug)}`;
 
@@ -27,7 +28,7 @@ export function SubcategoriesPage() {
   if (!category) {
     return (
       <div className="flex flex-col items-center gap-4 py-16 text-center">
-        <title>Categoria non trovata — Sonora</title>
+        <PageMeta title="Categoria non trovata" noindex />
         <h1 className="text-2xl font-semibold">Categoria non trovata</h1>
         <Link to="/categorie" className="underline underline-offset-4">
           Torna alle categorie
@@ -38,7 +39,7 @@ export function SubcategoriesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <title>{`${category.name} — Sonora`}</title>
+      <PageMeta title={category.name} description={category.description ?? undefined} />
 
       <nav aria-label="Percorso" className="text-silk flex items-center gap-1 text-muted-foreground">
         <ChevronLeft className="size-3.5" aria-hidden />

@@ -46,3 +46,23 @@ export async function uploadImage(file: File): Promise<UploadedImage> {
   }
   return { url: body.secure_url, publicId: body.public_id };
 }
+
+const CLOUDINARY_UPLOAD = /^(https:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\/)(.+)$/;
+/** Larghezze in cui Cloudinary ridimensiona le foto: il browser sceglie la più piccola che basta */
+const WIDTHS = [160, 320, 480, 640, 960, 1280];
+
+/**
+ * Indirizzo di una foto di Cloudinary ridimensionata a `width` pixel, in WebP/AVIF se il browser li supporta
+ * e con la qualità scelta da Cloudinary. Gli altri indirizzi (es. le illustrazioni in /public) restano come sono.
+ */
+export function optimizedImageUrl(url: string, width: number): string {
+  const match = CLOUDINARY_UPLOAD.exec(url);
+  if (!match) return url;
+  return `${match[1]}f_auto,q_auto,c_limit,w_${width}/${match[2]}`;
+}
+
+/** srcset per <img>: vuoto se la foto non è su Cloudinary e quindi non si può ridimensionare */
+export function imageSrcSet(url: string): string | undefined {
+  if (!CLOUDINARY_UPLOAD.test(url)) return undefined;
+  return WIDTHS.map((width) => `${optimizedImageUrl(url, width)} ${width}w`).join(", ");
+}

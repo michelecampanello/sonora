@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { optimizedImageUrl } from "@/lib/cloudinary";
 import { cn } from "@/lib/utils";
 import type { ProductPhoto } from "@/lib/types";
 import { ProductImage } from "./ProductImage";
@@ -21,6 +22,8 @@ export function ProductGallery({ name, categorySlug, images }: ProductGalleryPro
         imageUrl={current?.url ?? null}
         categorySlug={categorySlug}
         className="rounded-xl"
+        sizes="(min-width: 768px) 50vw, 100vw"
+        priority
       />
 
       {images.length > 1 && (
@@ -37,7 +40,7 @@ export function ProductGallery({ name, categorySlug, images }: ProductGalleryPro
                   index === selected && "border-primary"
                 )}
               >
-                <img src={image.url} alt="" loading="lazy" className="aspect-square w-full bg-muted object-cover" />
+                <img src={optimizedImageUrl(image.url, 200)} alt="" width={200} height={200} loading="lazy" decoding="async" className="aspect-square h-auto w-full bg-muted object-cover" />
               </button>
             </li>
           ))}

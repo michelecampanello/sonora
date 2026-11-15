@@ -7,6 +7,7 @@ import { HeroWaveform } from "@/components/layout/HeroWaveform";
 import { useFetch } from "@/hooks/useFetch";
 import { categoriesPath, featuredProductsPath } from "@/lib/api";
 import type { Category, Paginated, ProductSummary } from "@/lib/types";
+import { PageMeta } from "@/components/PageMeta";
 
 export function LandingPage() {
   const { data, error } = useFetch<Paginated<ProductSummary>>(featuredProductsPath);
@@ -14,7 +15,7 @@ export function LandingPage() {
 
   return (
     <div className="flex flex-col gap-16 md:gap-24">
-      <title>Sonora — Strumenti musicali</title>
+      <PageMeta />
 
       <section className="panel full-bleed -mt-8 overflow-hidden md:-mt-12">
         <div className="mx-auto flex max-w-[96rem] flex-col gap-8 px-4 pt-8 md:gap-12 md:px-8 md:pt-12">

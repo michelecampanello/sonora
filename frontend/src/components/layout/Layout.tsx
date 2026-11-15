@@ -1,4 +1,6 @@
+import { Suspense } from "react";
 import { Link, Outlet } from "react-router";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Header } from "./Header";
 
 const FOOTER_LINK = "transition-colors hover:text-signal";
@@ -8,7 +10,10 @@ export function Layout() {
     <div className="flex min-h-svh flex-col overflow-x-clip">
       <Header />
       <main className="mx-auto w-full max-w-[96rem] flex-1 px-4 py-8 md:px-8 md:py-12">
-        <Outlet />
+        {/* Mentre arriva il file di una pagina, l'header e il footer restano al loro posto */}
+        <Suspense fallback={<Skeleton className="h-96 w-full" aria-label="Caricamento" />}>
+          <Outlet />
+        </Suspense>
       </main>
       <footer className="panel mt-12 overflow-hidden">
         <div className="ticks text-muted-foreground/50" aria-hidden />
