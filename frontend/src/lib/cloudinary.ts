@@ -61,6 +61,15 @@ export function optimizedImageUrl(url: string, width: number): string {
   return `${match[1]}f_auto,q_auto,c_limit,w_${width}/${match[2]}`;
 }
 
+/**
+ * Una versione minuscola (24 pixel, meno di 1 kB) da mostrare sfocata mentre arriva quella vera:
+ * si vedono subito i colori e le forme dell'immagine. Null se la foto non è su Cloudinary.
+ */
+export function placeholderImageUrl(url: string): string | null {
+  const match = CLOUDINARY_UPLOAD.exec(url);
+  return match ? `${match[1]}f_auto,q_auto:low,c_limit,w_24/${match[2]}` : null;
+}
+
 /** srcset per <img>: vuoto se la foto non è su Cloudinary e quindi non si può ridimensionare */
 export function imageSrcSet(url: string): string | undefined {
   if (!CLOUDINARY_UPLOAD.test(url)) return undefined;

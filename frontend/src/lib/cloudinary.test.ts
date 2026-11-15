@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { imageSrcSet, MAX_IMAGE_BYTES, optimizedImageUrl, uploadImage } from "@/lib/cloudinary";
+import { imageSrcSet, MAX_IMAGE_BYTES, optimizedImageUrl, placeholderImageUrl, uploadImage } from "@/lib/cloudinary";
 import { mockApi } from "@/test/mockApi";
 
 const SIGNATURE = {
@@ -80,5 +80,17 @@ describe("optimizedImageUrl e imageSrcSet", () => {
   it("lascia com'è un'immagine che non è su Cloudinary", () => {
     expect(optimizedImageUrl("/prodotti/basso.svg", 640)).toBe("/prodotti/basso.svg");
     expect(imageSrcSet("/prodotti/basso.svg")).toBeUndefined();
+  });
+});
+
+describe("placeholderImageUrl", () => {
+  it("chiede a Cloudinary una miniatura di 24 pixel a bassa qualità", () => {
+    expect(placeholderImageUrl("https://res.cloudinary.com/demo/image/upload/v1/sonora/basso.png")).toBe(
+      "https://res.cloudinary.com/demo/image/upload/f_auto,q_auto:low,c_limit,w_24/v1/sonora/basso.png",
+    );
+  });
+
+  it("non ha segnaposto un'immagine che non è su Cloudinary", () => {
+    expect(placeholderImageUrl("/foto/basso.png")).toBeNull();
   });
 });

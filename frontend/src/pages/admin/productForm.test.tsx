@@ -17,7 +17,8 @@ const categories: Category[] = [
     name: "Bassi",
     slug: "bassi",
     description: null,
-    children: [{ id: BASS_ELECTRIC, name: "Bassi elettrici", slug: "bassi-elettrici", description: null }],
+    image_url: null,
+    children: [{ id: BASS_ELECTRIC, name: "Bassi elettrici", slug: "bassi-elettrici", description: null, image_url: null }],
   },
 ];
 const brands: Brand[] = [{ id: BRAND, slug: "nordwood", name: "Nordwood" }];

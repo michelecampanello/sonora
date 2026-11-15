@@ -3,7 +3,7 @@
 Progetto full stack in TypeScript: React (frontend) + Node.js/Express (backend) + PostgreSQL.
 
 > Nome provvisorio: sostituiscilo con il nome che sceglierai per il negozio.
-> Marche e prodotti nei dati di prova sono inventati.
+> Marche, prodotti, clienti e recensioni nei dati di prova sono inventati. I clienti di prova non possono accedere: servono solo come autori delle recensioni.
 
 ## Stato del progetto
 
@@ -47,6 +47,7 @@ Altri comandi:
 | `npm start` | Avvia la versione compilata (quella da usare online) |
 | `npm test` | Esegue i test (`npm run test:watch` li rilancia a ogni modifica) |
 | `npm run make-admin -- email@example.com` | Dà il ruolo di amministratore a un account già registrato |
+| `npm run upload-images -- <cartella> <cartella-cloudinary>` | Carica su Cloudinary le immagini PNG/JPG/WebP di una cartella, con il nome del file come id (es. quelle dei dati di prova in `sonora/seed/prodotti`) |
 
 ## Test
 

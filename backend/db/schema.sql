@@ -45,6 +45,7 @@ CREATE TABLE categories (
   slug        VARCHAR(100) NOT NULL UNIQUE,          -- usato negli URL, es. "chitarre-elettriche"
   description TEXT,
   sort_order  INTEGER NOT NULL DEFAULT 0,            -- ordine di visualizzazione tra categorie dello stesso livello
+  image_url   TEXT,                                   -- illustrazione della categoria, NULL = nessuna
   parent_id   UUID REFERENCES categories(id) ON DELETE CASCADE  -- NULL = categoria principale
 );
 

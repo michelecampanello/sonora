@@ -12,6 +12,7 @@ export interface CategoryRow {
   name: string;
   slug: string;
   description: string | null;
+  image_url: string | null;
   parent_id: string | null;
 }
 
@@ -20,6 +21,7 @@ export interface Category {
   name: string;
   slug: string;
   description: string | null;
+  image_url: string | null;
   children: Omit<Category, "children">[];
 }
 

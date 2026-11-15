@@ -13,7 +13,8 @@
     "db:migrate": "set -a && . ./.env && set +a && for f in db/migrations/*.sql; do psql \"$DATABASE_URL\" -q -1 -v ON_ERROR_STOP=1 -f \"$f\" || exit 1; done",
     "test": "vitest run",
     "test:watch": "vitest",
-    "make-admin": "tsx --env-file=.env scripts/make-admin.ts"
+    "make-admin": "tsx --env-file=.env scripts/make-admin.ts",
+    "upload-images": "tsx --env-file=.env scripts/upload-images.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

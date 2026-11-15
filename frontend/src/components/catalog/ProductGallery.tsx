@@ -1,19 +1,24 @@
-import { useState } from "react";
-import { optimizedImageUrl } from "@/lib/cloudinary";
-import { cn } from "@/lib/utils";
-import type { ProductPhoto } from "@/lib/types";
-import { ProductImage } from "./ProductImage";
+import { useState } from "react"
+import { SmoothImage } from "@/components/SmoothImage"
+import { optimizedImageUrl } from "@/lib/cloudinary"
+import { cn } from "@/lib/utils"
+import type { ProductPhoto } from "@/lib/types"
+import { ProductImage } from "./ProductImage"
 
 interface ProductGalleryProps {
-  name: string;
-  categorySlug: string;
-  images: ProductPhoto[];
+  name: string
+  categorySlug: string
+  images: ProductPhoto[]
 }
 
 /** Immagine grande con le miniature per cambiarla. Senza immagini mostra l'icona della categoria. */
-export function ProductGallery({ name, categorySlug, images }: ProductGalleryProps) {
-  const [selected, setSelected] = useState(0);
-  const current = images[selected];
+export function ProductGallery({
+  name,
+  categorySlug,
+  images,
+}: ProductGalleryProps) {
+  const [selected, setSelected] = useState(0)
+  const current = images[selected]
 
   return (
     <div className="flex min-w-0 flex-col gap-3">
@@ -27,7 +32,10 @@ export function ProductGallery({ name, categorySlug, images }: ProductGalleryPro
       />
 
       {images.length > 1 && (
-        <ul className="grid grid-cols-5 gap-2" aria-label="Immagini del prodotto">
+        <ul
+          className="grid grid-cols-5 gap-2"
+          aria-label="Immagini del prodotto"
+        >
           {images.map((image, index) => (
             <li key={image.id}>
               <button
@@ -40,12 +48,21 @@ export function ProductGallery({ name, categorySlug, images }: ProductGalleryPro
                   index === selected && "border-primary"
                 )}
               >
-                <img src={optimizedImageUrl(image.url, 200)} alt="" width={200} height={200} loading="lazy" decoding="async" className="aspect-square h-auto w-full bg-muted object-cover" />
+                <SmoothImage
+                  src={optimizedImageUrl(image.url, 200)}
+                  original={image.url}
+                  alt=""
+                  width={200}
+                  height={200}
+                  loading="lazy"
+                  decoding="async"
+                  wrapperClassName="aspect-square w-full"
+                />
               </button>
             </li>
           ))}
         </ul>
       )}
     </div>
-  );
+  )
 }

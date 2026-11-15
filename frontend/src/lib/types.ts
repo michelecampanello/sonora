@@ -62,6 +62,8 @@ export interface Category {
   name: string;
   slug: string;
   description: string | null;
+  /** Illustrazione su Cloudinary; null = nessuna */
+  image_url: string | null;
   children: Omit<Category, "children">[];
 }
 

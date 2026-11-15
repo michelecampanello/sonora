@@ -76,12 +76,14 @@ const categories: Category[] = [
     name: "Bassi",
     slug: "bassi",
     description: null,
+    image_url: null,
     children: [
       {
         id: CATEGORY,
         name: "Bassi elettrici",
         slug: "bassi-elettrici",
         description: null,
+        image_url: null,
       },
     ],
   },

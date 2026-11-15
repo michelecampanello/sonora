@@ -18,7 +18,12 @@ import {
 } from "@/components/ui/native-select"
 import { Textarea } from "@/components/ui/textarea"
 import { adminNewProductPath, adminProductPath, sendJson } from "@/lib/api"
-import { ACCEPTED_IMAGE_TYPES, uploadImage } from "@/lib/cloudinary"
+import { SmoothImage } from "@/components/SmoothImage"
+import {
+  ACCEPTED_IMAGE_TYPES,
+  optimizedImageUrl,
+  uploadImage,
+} from "@/lib/cloudinary"
 import type {
   AdminProductDetail,
   Brand,
@@ -420,9 +425,8 @@ export function ProductForm({
         </legend>
         <p className="text-sm text-muted-foreground">
           La prima è la copertina. Carica una foto (JPG, PNG, WebP o AVIF, fino
-          a 10 MB) oppure indica un percorso del sito (es. /prodotti/nome.svg) o
-          un indirizzo https://. Senza immagini il negozio mostra
-          un'illustrazione automatica.
+          a 10 MB) oppure indica un indirizzo https://. Senza immagini il
+          negozio mostra un'illustrazione automatica.
         </p>
         {draft.images.map((image, i) => (
           <div
@@ -430,10 +434,14 @@ export function ProductForm({
             className="grid grid-cols-[3rem_minmax(0,2fr)_minmax(0,1fr)_auto] items-center gap-2"
           >
             {image.url ? (
-              <img
-                src={image.url}
+              // 48 pixel: ne bastano 96, invece di scaricare la foto originale
+              <SmoothImage
+                src={optimizedImageUrl(image.url, 96)}
+                original={image.url}
                 alt=""
-                className="aspect-square w-12 rounded-md bg-muted object-cover"
+                width={96}
+                height={96}
+                wrapperClassName="aspect-square w-12 rounded-md"
               />
             ) : (
               <span className="aspect-square w-12 rounded-md bg-muted" />
