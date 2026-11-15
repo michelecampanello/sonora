@@ -19,6 +19,9 @@ export type ProductSort = keyof typeof SORTS;
 // Object.hasOwn e non `in`: valori come "toString" sono proprietà ereditate, non ordinamenti ammessi.
 export const isProductSort = (value: string): value is ProductSort => Object.hasOwn(SORTS, value);
 
+/** Quanto una parola cercata deve somigliare a una del prodotto: col valore predefinito di pg_trgm (0.6) un errore di una lettera non basterebbe */
+const WORD_SIMILARITY_THRESHOLD = 0.5;
+
 export interface ProductFilters {
   q?: string | undefined;
   category?: string | undefined;
@@ -64,10 +67,14 @@ export async function listProducts(filters: ProductFilters): Promise<Paginated<P
   if (q) {
     const term = add(`%${q}%`);
     const words = add(q);
-    // ILIKE trova il testo esatto; <% (pg_trgm) trova anche le parole scritte in modo simile
+    // ILIKE trova il testo esatto; word_similarity (pg_trgm) trova anche le parole scritte in modo simile.
+    // La soglia sta nella query e non nel parametro pg_trgm.word_similarity_threshold della connessione,
+    // che i pooler come quello di Neon rifiutano: con 0.5 "humbuker" trova ancora "humbucker".
+    const threshold = add(WORD_SIMILARITY_THRESHOLD);
     conditions.push(
       `(p.name ILIKE ${term} OR p.description ILIKE ${term} OR p.sku ILIKE ${term}
-        OR ${words} <% p.name OR ${words} <% p.description)`,
+        OR word_similarity(${words}, p.name) >= ${threshold}
+        OR word_similarity(${words}, coalesce(p.description, '')) >= ${threshold})`,
     );
   }
   if (category) {

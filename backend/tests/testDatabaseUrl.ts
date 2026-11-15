@@ -5,7 +5,8 @@ import { parseEnv } from "node:util";
  * I test usano un database separato, ricreato a ogni esecuzione: per prudenza il nome deve
  * finire con "_test", perché schema.sql cancella tutte le tabelle.
  * Si può indicare con TEST_DATABASE_URL; altrimenti è quello del file .env con "_test" in coda
- * al nome (es. music_store → music_store_test).
+ * al nome (es. music_store → music_store_test), ma solo se è su questo computer: se .env punta a un
+ * database online (es. Neon) i test non creano database lì e chiedono di indicare TEST_DATABASE_URL.
  */
 export function testDatabaseUrl(): string {
   const explicit = process.env.TEST_DATABASE_URL;
@@ -13,7 +14,15 @@ export function testDatabaseUrl(): string {
   const devUrl = existsSync(".env") ? parseEnv(readFileSync(".env", "utf8")).DATABASE_URL : undefined;
 
   const url = new URL(explicit ?? devUrl ?? "postgres://postgres:password@localhost:5432/music_store");
-  if (!explicit) url.pathname = `${url.pathname.replace(/\/$/, "")}_test`;
+  if (!explicit) {
+    if (!["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)) {
+      throw new Error(
+        `DATABASE_URL in .env punta a un server remoto (${url.hostname}): i test non creano database lì. ` +
+          "Indica un database locale con TEST_DATABASE_URL, es. TEST_DATABASE_URL=postgres://postgres:password@localhost:5432/sonora_test",
+      );
+    }
+    url.pathname = `${url.pathname.replace(/\/$/, "")}_test`;
+  }
 
   if (!decodeURIComponent(url.pathname.slice(1)).endsWith("_test")) {
     throw new Error(`Il nome del database dei test deve finire con "_test": ${url.pathname.slice(1)}`);

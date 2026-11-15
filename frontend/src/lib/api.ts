@@ -1,7 +1,8 @@
 import type { CatalogFilters } from "@/lib/types";
 
-// In sviluppo resta vuoto: Vite inoltra le chiamate /api al backend (vedi "proxy" in vite.config.ts).
-// Online imposterai VITE_API_URL con l'indirizzo del backend pubblicato.
+// Di solito resta vuoto: le chiamate vanno a /api sullo stesso dominio del sito.
+// In sviluppo Vite le inoltra al backend (vedi "proxy" in vite.config.ts); su Vercel ci pensa la rewrite
+// /api/(.*) di vercel.json, che le manda al servizio "backend". VITE_API_URL serve solo se l'API sta su un altro dominio.
 const API_URL: string = import.meta.env.VITE_API_URL ?? "";
 
 export class ApiError extends Error {
