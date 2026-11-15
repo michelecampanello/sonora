@@ -11,7 +11,7 @@ Progetto full stack in TypeScript: React (frontend) + Node.js/Express (backend) 
 - [ ] Tappa 2 — Frontend catalogo (lista, dettaglio, ricerca, filtri)
 - [x] Tappa 3 — Carrello
 - [x] Tappa 4 — Registrazione e login (JWT)
-- [x] Tappa 5 — Checkout e area personale (ordini, indirizzi, metodi di pagamento, impostazioni). Il pagamento è solo alla consegna
+- [x] Tappa 5 — Checkout e area personale (ordini, indirizzi, impostazioni). Il pagamento è solo alla consegna
 - [x] Tappa 6 — Pannello admin: ordini (stati, annullamento con ritorno in magazzino), creazione e modifica dei prodotti con caratteristiche e foto caricate su Cloudinary
 - [ ] Tappa 7 — Pubblicazione online
 
@@ -72,7 +72,7 @@ Il server parte su `http://localhost:3000`. Prova: `http://localhost:3000/api/he
 | GET | `/api/brands` | Elenco marche |
 | GET | `/api/brands/:slug/products` | Prodotti di una marca |
 | POST | `/api/orders` | Crea un ordine, collegato all'utente se ha fatto l'accesso, e scala il magazzino |
-| POST | `/api/auth/register` | Crea un account e avvia la sessione |
+| POST | `/api/auth/register` | Crea un account (`first_name`, `last_name`, `email`, `password`) e avvia la sessione |
 | POST | `/api/auth/login` | Avvia la sessione |
 | POST | `/api/auth/logout` | Chiude la sessione |
 | GET | `/api/auth/me` | Utente collegato, 401 se non c'è una sessione |
@@ -80,14 +80,11 @@ Il server parte su `http://localhost:3000`. Prova: `http://localhost:3000/api/he
 | POST | `/api/auth/reset-password` | Imposta la nuova password con il link ricevuto e chiude tutte le sessioni |
 | GET | `/api/account/orders` | Ordini dell'utente, paginati (`?page=2`) |
 | GET | `/api/account/orders/:id` | Dettaglio di un ordine dell'utente |
-| PATCH | `/api/account/profile` | Cambia nome ed email; per l'email serve la password attuale |
+| PATCH | `/api/account/profile` | Cambia nome, cognome ed email; per l'email serve la password attuale |
 | PUT | `/api/account/password` | Cambia la password e chiude le altre sessioni |
 | GET, POST | `/api/account/addresses` | Indirizzi salvati |
 | PUT, DELETE | `/api/account/addresses/:id` | Modifica o elimina un indirizzo |
 | POST | `/api/account/addresses/:id/default` | Imposta l'indirizzo predefinito |
-| GET, POST | `/api/account/payment-methods` | Metodi di pagamento salvati |
-| DELETE | `/api/account/payment-methods/:id` | Elimina un metodo di pagamento |
-| POST | `/api/account/payment-methods/:id/default` | Imposta il metodo predefinito |
 
 ### Pannello admin
 
@@ -129,12 +126,12 @@ Esempio: `/api/products?category=chitarre&maxPrice=400&sort=price_asc`
 - **Backend a tre livelli**: `routes/` collega URL e controller, `controllers/` legge e valida la richiesta e sceglie la risposta HTTP, `services/` contiene le query e la logica di business, senza conoscere Express.
 - **Sessione con JWT in un cookie `httpOnly` e `SameSite=Lax`**: JavaScript non può leggere il token e gli altri siti non possono usarlo. Online il sito e l'API devono stare sullo stesso dominio base (es. `www.example.com` e `api.example.com`), oppure l'API va inoltrata dal dominio del sito.
 - **Reset della password con link monouso** valido un'ora: nel database resta solo l'impronta SHA-256 del token, e il token viaggia dopo il `#` dell'URL, quindi non finisce nei log dei server. L'email parte con [Resend](https://resend.com), in HTML e in testo semplice. Se l'invio fallisce il link viene cancellato, così si può chiederne subito un altro invece di aspettare i 2 minuti fra una richiesta e l'altra.
-  Configurazione in `backend/.env`: `RESEND_API_KEY` (da [resend.com/api-keys](https://resend.com/api-keys)) e `MAIL_FROM`, un mittente con un dominio verificato su Resend. In sviluppo, senza `MAIL_FROM` si usa l'indirizzo di prova `onboarding@resend.dev`; senza `RESEND_API_KEY` il link viene stampato nella console del backend. In produzione il server non parte se manca una delle due.
+- **Email di benvenuto e di conferma dell'ordine**, sempre con Resend. Partono dopo aver risposto al browser: se l'invio non riesce l'errore finisce nei log del server, ma l'account o l'ordine restano validi. La conferma riepiloga articoli, totale e indirizzo di spedizione, e va all'email indicata nel checkout; per chi ha fatto l'accesso porta anche alla pagina dell'ordine nell'area personale.
+  Configurazione in `backend/.env`: `RESEND_API_KEY` (da [resend.com/api-keys](https://resend.com/api-keys)) e `MAIL_FROM`, un mittente con un dominio verificato su Resend. In sviluppo, senza `MAIL_FROM` si usa l'indirizzo di prova `onboarding@resend.dev`; senza `RESEND_API_KEY` nessuna email parte e la console del backend dice quale sarebbe partita (per il reset, con il link). In produzione il server non parte se manca una delle due.
 - **Pannello admin nello stesso frontend**, sotto `/admin`: React.lazy lo mette in un file JavaScript separato, che chi compra non scarica. Il frontend nasconde il pannello a chi non è admin solo per comodità; a proteggere i dati è il backend, con il middleware `requireAdmin` su tutte le rotte `/api/admin`. Un admin si crea solo con `npm run make-admin`, mai da un'API.
 - **Foto dei prodotti su Cloudinary, caricate direttamente dal browser**: il backend firma soltanto la richiesta (SHA-1 dei parametri, come da [documentazione](https://cloudinary.com/documentation/authentication_signatures)), quindi il segreto API non arriva mai al browser e i file non passano dal nostro server. La firma fissa formati ammessi e cartella, e vale un'ora. Si configura con `CLOUDINARY_URL` in `backend/.env`; senza, le immagini si indicano con un indirizzo come prima.
   Di ogni foto caricata si salva il `public_id` restituito da Cloudinary. Quando una foto viene tolta da un prodotto, e nessun altro prodotto la usa, dopo il salvataggio viene cancellata da Cloudinary e dalla cache della CDN. Le immagini indicate con un indirizzo non vengono mai cancellate.
 - **Password con bcrypt e limite ai tentativi** su login e registrazione. Il limite è per indirizzo IP: dietro un proxy, online, va configurato `trust proxy` in Express.
-- **Nessun dato sensibile delle carte**: si salvano solo circuito, ultime 4 cifre, intestatario e scadenza. Per incassare davvero servirà un fornitore di pagamenti, come Stripe, che custodisca le carte al posto del negozio.
 - **TypeScript in modalità `strict`**, con i tipi delle risposte API raccolti in `src/types.ts` (riutilizzabili nel frontend).
 - **Validazione della query string**: i parametri vengono convertiti e controllati (`asString`, `asNumber`) invece di fidarsi di ciò che arriva dal client.
 

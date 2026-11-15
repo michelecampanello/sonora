@@ -79,8 +79,6 @@ export const profilePath = "/api/account/profile";
 export const passwordPath = "/api/account/password";
 export const addressesPath = "/api/account/addresses";
 export const addressPath = (id: string) => `${addressesPath}/${encodeURIComponent(id)}`;
-export const paymentMethodsPath = "/api/account/payment-methods";
-export const paymentMethodPath = (id: string) => `${paymentMethodsPath}/${encodeURIComponent(id)}`;
 export const productPath = (slug: string) => `/api/products/${encodeURIComponent(slug)}`;
 export const categoriesPath = "/api/categories";
 export const brandsPath = "/api/brands";

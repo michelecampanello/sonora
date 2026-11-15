@@ -1,3 +1,5 @@
+import type { PersonName } from "@/lib/types";
+
 /**
  * Formatta un prezzo in euro all'italiana: "349.00" → "349,00 €", "1290.00" → "1.290,00 €".
  *
@@ -18,3 +20,13 @@ export const formatDate = (iso: string): string => DATE_FORMAT.format(new Date(i
 
 /** Il codice breve con cui un ordine viene mostrato al cliente */
 export const orderCode = (id: string): string => id.slice(0, 8).toUpperCase();
+
+/** Nome e cognome insieme: "Giulia Bianchi" (senza spazi in più se il cognome manca) */
+export const fullName = ({ first_name, last_name }: PersonName): string => `${first_name} ${last_name}`.trim();
+
+/** Un saluto per nome, adatto all'ora: "Buongiorno, Giulia", "Buon pomeriggio, Giulia", "Buonasera, Giulia" */
+export function greeting(firstName: string, now: Date = new Date()): string {
+  const hour = now.getHours();
+  const salute = hour >= 5 && hour < 12 ? "Buongiorno" : hour >= 12 && hour < 18 ? "Buon pomeriggio" : "Buonasera";
+  return firstName ? `${salute}, ${firstName}` : salute;
+}

@@ -1,6 +1,7 @@
 import { asyncHandler } from "../asyncHandler.js";
 import { isEmail } from "../email.js";
 import { isUuid } from "../uuid.js";
+import { sendOrderConfirmationEmail } from "../services/mail.service.js";
 import { createOrder, InsufficientStockError, type CartLine } from "../services/orders.service.js";
 import { isPersonName, isRecord, locationError, parseLocation, text } from "../validation.js";
 import type { ApiError, OrderConfirmation, OrderCustomer } from "../types.js";
@@ -58,13 +59,19 @@ export const postOrder = asyncHandler<{}, OrderConfirmation | ApiError, unknown,
     const lines = parseItems(body.items);
     if (typeof lines === "string") return res.status(400).json({ error: lines });
 
+    let order: OrderConfirmation;
     try {
-      return res.status(201).json(await createOrder(customer, lines, req.user?.id ?? null));
+      order = await createOrder(customer, lines, req.user?.id ?? null);
     } catch (err) {
       if (err instanceof InsufficientStockError) {
         return res.status(409).json({ error: err.message });
       }
       throw err;
     }
+
+    res.status(201).json(order);
+    // Dopo la risposta: l'ordine è già salvato, e un problema con l'email non deve farlo sembrare fallito
+    sendOrderConfirmationEmail(order, Boolean(req.user)).catch((err: unknown) => console.error(err));
+    return undefined;
   },
 );

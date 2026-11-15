@@ -15,7 +15,6 @@ function page<K extends string>(load: () => Promise<Record<K, ComponentType>>, n
 const AddressesPage = page(() => import("@/pages/account/AddressesPage"), "AddressesPage");
 const OrderDetailPage = page(() => import("@/pages/account/OrderDetailPage"), "OrderDetailPage");
 const OrdersPage = page(() => import("@/pages/account/OrdersPage"), "OrdersPage");
-const PaymentMethodsPage = page(() => import("@/pages/account/PaymentMethodsPage"), "PaymentMethodsPage");
 const SettingsPage = page(() => import("@/pages/account/SettingsPage"), "SettingsPage");
 const AboutPage = page(() => import("@/pages/AboutPage"), "AboutPage");
 const CartPage = page(() => import("@/pages/CartPage"), "CartPage");
@@ -53,7 +52,6 @@ export default function App() {
           <Route path="ordini" element={<OrdersPage />} />
           <Route path="ordini/:id" element={<OrderDetailPage />} />
           <Route path="indirizzi" element={<AddressesPage />} />
-          <Route path="pagamenti" element={<PaymentMethodsPage />} />
           <Route path="impostazioni" element={<SettingsPage />} />
         </Route>
         <Route path="admin/*" element={<AdminRoutes />} />

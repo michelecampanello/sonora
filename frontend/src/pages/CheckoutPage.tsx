@@ -9,7 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { clearCart, useCartLines } from "@/hooks/useCart";
 import { useFetch } from "@/hooks/useFetch";
 import { addressesPath, ApiError, ordersPath, postJson } from "@/lib/api";
-import { formatPrice } from "@/lib/format";
+import { formatPrice, fullName } from "@/lib/format";
 import type { Address, OrderConfirmation, OrderCustomer } from "@/lib/types";
 import { PageMeta } from "@/components/PageMeta";
 
@@ -91,7 +91,7 @@ export function CheckoutPage() {
             </h2>
             <div className="grid gap-4 sm:grid-cols-2">
               {/* key: sessione e indirizzo arrivano dopo il primo disegno e i campi vanno precompilati */}
-              <Field key={`name-${user?.id}-${saved?.id}`} defaultValue={saved?.name ?? user?.name} label="Nome e cognome" name="name" autoComplete="name" minLength={2} maxLength={100} />
+              <Field key={`name-${user?.id}-${saved?.id}`} defaultValue={saved?.name ?? (user ? fullName(user) : undefined)} label="Nome e cognome" name="name" autoComplete="name" minLength={2} maxLength={100} />
               <Field key={`email-${user?.id}`} defaultValue={user?.email} label="Email" name="email" type="email" autoComplete="email" maxLength={255} />
             </div>
           </section>

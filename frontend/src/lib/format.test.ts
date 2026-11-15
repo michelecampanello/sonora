@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatPrice, orderCode } from "@/lib/format";
+import { formatPrice, fullName, greeting, orderCode } from "@/lib/format";
 
 describe("formatPrice", () => {
   it.each([
@@ -16,5 +16,31 @@ describe("formatPrice", () => {
 describe("orderCode", () => {
   it("usa i primi 8 caratteri dell'id, in maiuscolo", () => {
     expect(orderCode("3f2a9c1e-7a8d-4b5e-9f3a-2c1d0e9f8a7b")).toBe("3F2A9C1E");
+  });
+});
+
+describe("fullName", () => {
+  it("unisce nome e cognome, senza spazi in più se il cognome manca", () => {
+    expect(fullName({ first_name: "Giulia", last_name: "Bianchi" })).toBe("Giulia Bianchi");
+    expect(fullName({ first_name: "Cher", last_name: "" })).toBe("Cher");
+  });
+});
+
+describe("greeting", () => {
+  const at = (hour: number) => new Date(2026, 10, 15, hour, 30);
+
+  it.each([
+    [5, "Buongiorno, Giulia"],
+    [11, "Buongiorno, Giulia"],
+    [12, "Buon pomeriggio, Giulia"],
+    [17, "Buon pomeriggio, Giulia"],
+    [18, "Buonasera, Giulia"],
+    [2, "Buonasera, Giulia"],
+  ])("alle %i:30 → %j", (hour, expected) => {
+    expect(greeting("Giulia", at(hour))).toBe(expected);
+  });
+
+  it("senza nome saluta e basta", () => {
+    expect(greeting("", at(9))).toBe("Buongiorno");
   });
 });

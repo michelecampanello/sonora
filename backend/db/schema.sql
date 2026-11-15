@@ -113,7 +113,8 @@ CREATE INDEX idx_product_images_cloudinary ON product_images(cloudinary_public_i
 
 CREATE TABLE users (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name            VARCHAR(100) NOT NULL,
+  first_name      VARCHAR(50) NOT NULL,
+  last_name       VARCHAR(50) NOT NULL,
   email           VARCHAR(255) NOT NULL UNIQUE,
   password_hash   TEXT NOT NULL,
   role            VARCHAR(20) NOT NULL DEFAULT 'customer' CHECK (role IN ('customer', 'admin')),
@@ -141,24 +142,9 @@ CREATE TABLE addresses (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Solo i dati mostrabili: il numero completo della carta e il CVV non devono mai arrivare qui.
-CREATE TABLE payment_methods (
-  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  brand      VARCHAR(20) NOT NULL CHECK (brand IN ('visa', 'mastercard', 'amex', 'altro')),
-  last4      CHAR(4) NOT NULL CHECK (last4 ~ '^[0-9]{4}$'),
-  holder     VARCHAR(100) NOT NULL,
-  exp_month  SMALLINT NOT NULL CHECK (exp_month BETWEEN 1 AND 12),
-  exp_year   SMALLINT NOT NULL,
-  is_default BOOLEAN NOT NULL DEFAULT false,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
--- Al massimo un elemento predefinito per utente
+-- Al massimo un indirizzo predefinito per utente
 CREATE UNIQUE INDEX idx_addresses_one_default ON addresses(user_id) WHERE is_default;
-CREATE UNIQUE INDEX idx_payment_methods_one_default ON payment_methods(user_id) WHERE is_default;
 CREATE INDEX idx_addresses_user ON addresses(user_id);
-CREATE INDEX idx_payment_methods_user ON payment_methods(user_id);
 
 CREATE TABLE orders (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -7,12 +7,6 @@ import {
   putAddress,
   removeAddress,
 } from "../controllers/addresses.controller.js";
-import {
-  getPaymentMethods,
-  makePaymentMethodDefault,
-  postPaymentMethod,
-  removePaymentMethod,
-} from "../controllers/paymentMethods.controller.js";
 import { loadUser, requireAuth } from "../middleware/auth.middleware.js";
 import { failedAttemptsLimiter } from "../middleware/rateLimit.js";
 
@@ -34,10 +28,5 @@ router.post("/addresses", postAddress);
 router.put("/addresses/:id", putAddress);
 router.delete("/addresses/:id", removeAddress);
 router.post("/addresses/:id/default", makeAddressDefault);
-
-router.get("/payment-methods", getPaymentMethods);
-router.post("/payment-methods", postPaymentMethod);
-router.delete("/payment-methods/:id", removePaymentMethod);
-router.post("/payment-methods/:id/default", makePaymentMethodDefault);
 
 export default router;

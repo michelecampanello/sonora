@@ -12,12 +12,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { logout } from "@/hooks/useAuth";
+import { fullName, greeting } from "@/lib/format";
 import type { User as UserData } from "@/lib/types";
 
 export const ACCOUNT_LINKS = [
   ["/account/ordini", "Ordini"],
   ["/account/indirizzi", "Indirizzi"],
-  ["/account/pagamenti", "Pagamenti"],
   ["/account/impostazioni", "Impostazioni"],
 ] as const;
 
@@ -49,17 +49,20 @@ export function AccountMenu({ user }: { user: UserData }) {
       }}
     >
       <DropdownMenuTrigger
-        aria-label={`Il mio account, ${user.name}`}
+        aria-label={`Il mio account, ${fullName(user)}`}
         className="flex h-9 shrink-0 items-center gap-2 text-silk transition-colors outline-none hover:text-primary focus-visible:text-primary data-popup-open:text-primary"
       >
         <User className="size-4" aria-hidden />
-        <span className="hidden max-w-40 truncate lg:inline">{user.name}</span>
+        <span className="hidden max-w-40 truncate lg:inline">{user.first_name ? `Ciao, ${user.first_name}` : "Account"}</span>
         <ChevronDown className="size-3.5" aria-hidden />
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuGroup>
-          <DropdownMenuLabel className="truncate">{user.email}</DropdownMenuLabel>
+          <DropdownMenuLabel className="flex flex-col gap-0.5">
+            <span className="truncate text-sm text-foreground">{greeting(user.first_name)}</span>
+            <span className="truncate font-normal">{user.email}</span>
+          </DropdownMenuLabel>
           {ACCOUNT_LINKS.map(([to, label]) => {
             const current = location.pathname === to || location.pathname.startsWith(`${to}/`);
             return (

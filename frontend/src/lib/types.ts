@@ -3,10 +3,14 @@
 
 export interface User {
   id: string;
-  name: string;
+  first_name: string;
+  last_name: string;
   email: string;
   role: "customer" | "admin";
 }
+
+/** Nome e cognome di un account, come li accetta il backend */
+export type PersonName = Pick<User, "first_name" | "last_name">;
 
 export interface AuthResponse {
   user: User;
@@ -44,25 +48,6 @@ export interface Address {
   city: string;
   postal_code: string;
   province: string;
-  is_default: boolean;
-}
-
-export const CARD_BRANDS = {
-  visa: "Visa",
-  mastercard: "Mastercard",
-  amex: "American Express",
-  altro: "Altro circuito",
-} as const;
-
-export type CardBrand = keyof typeof CARD_BRANDS;
-
-export interface PaymentMethod {
-  id: string;
-  brand: CardBrand;
-  last4: string;
-  holder: string;
-  exp_month: number;
-  exp_year: number;
   is_default: boolean;
 }
 

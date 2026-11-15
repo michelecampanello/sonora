@@ -176,23 +176,10 @@ export interface Address {
   is_default: boolean;
 }
 
-export const CARD_BRANDS = ["visa", "mastercard", "amex", "altro"] as const;
-export type CardBrand = (typeof CARD_BRANDS)[number];
-
-/** Solo i dati mostrabili di una carta: mai il numero completo né il CVV */
-export interface PaymentMethod {
-  id: string;
-  brand: CardBrand;
-  last4: string;
-  holder: string;
-  exp_month: number;
-  exp_year: number;
-  is_default: boolean;
-}
-
 export interface User {
   id: string;
-  name: string;
+  first_name: string;
+  last_name: string;
   email: string;
   role: "customer" | "admin";
 }

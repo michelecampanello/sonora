@@ -8,7 +8,7 @@ import { systemPrefersDark } from "@/test/matchMedia";
 import { THEME_STORAGE_KEY } from "@/lib/theme";
 import type { User } from "@/lib/types";
 
-const giulia: User = { id: "00000000-0000-4000-8000-000000000001", name: "Giulia Bianchi", email: "giulia@example.com", role: "customer" };
+const giulia: User = { id: "00000000-0000-4000-8000-000000000001", first_name: "Giulia", last_name: "Bianchi", email: "giulia@example.com", role: "customer" };
 
 const renderHeader = (url = "/") => renderPage(<Header />, { path: "*", url });
 
@@ -30,13 +30,19 @@ describe("menu dell'account", () => {
     const menu = await screen.findByRole("menu");
 
     expect(within(menu).getByText("giulia@example.com")).toBeInTheDocument();
+    expect(within(menu).getByText(/^(Buongiorno|Buon pomeriggio|Buonasera), Giulia$/)).toBeInTheDocument();
     const links = within(menu).getAllByRole("menuitem").filter((item) => item.tagName === "A");
     expect(links.map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
       ["Ordini", "/account/ordini"],
       ["Indirizzi", "/account/indirizzi"],
-      ["Pagamenti", "/account/pagamenti"],
       ["Impostazioni", "/account/impostazioni"],
     ]);
+  });
+
+  it("saluta per nome nell'header", () => {
+    setUser(giulia);
+    renderHeader();
+    expect(screen.getByRole("button", { name: "Il mio account, Giulia Bianchi" })).toHaveTextContent("Ciao, Giulia");
   });
 
   it("porta alla sezione scelta e si chiude", async () => {

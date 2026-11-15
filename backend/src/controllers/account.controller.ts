@@ -3,7 +3,7 @@ import { isEmail } from "../email.js";
 import { changePassword, EmailTakenError, isCurrentPassword, updateProfile } from "../services/auth.service.js";
 import { findUserOrder, listUserOrders } from "../services/orders.service.js";
 import { isUuid } from "../uuid.js";
-import { asRecord, isPersonName, passwordError, text } from "../validation.js";
+import { asRecord, parsePersonName, passwordError, text } from "../validation.js";
 import { startSession } from "./auth.controller.js";
 import type { ApiError, AuthResponse, OrderDetail, OrderSummary, Paginated } from "../types.js";
 
@@ -24,14 +24,14 @@ export const getOrder = asyncHandler<{ id: string }, OrderDetail | ApiError, unk
   return res.json(order);
 });
 
-/** PATCH /api/account/profile — nome ed email. Cambiare email richiede la password attuale. */
+/** PATCH /api/account/profile — nome, cognome ed email. Cambiare email richiede la password attuale. */
 export const patchProfile = asyncHandler<{}, AuthResponse | ApiError, unknown, unknown>(async (req, res) => {
   const fields = asRecord(req.body);
   const user = req.user!;
-  const name = text(fields.name);
+  const name = parsePersonName(fields);
   const email = text(fields.email).toLowerCase();
 
-  if (!isPersonName(name)) return res.status(400).json({ error: "Nome non valido" });
+  if (typeof name === "string") return res.status(400).json({ error: name });
   if (!isEmail(email)) return res.status(400).json({ error: "Email non valida" });
   if (email !== user.email && !(await isCurrentPassword(user.id, password(fields.currentPassword)))) {
     return res.status(400).json({ error: "Per cambiare email inserisci la password attuale corretta" });

@@ -96,3 +96,35 @@ describe("sendPasswordResetEmail", () => {
     await expect(loadMailService({ NODE_ENV: "production", RESEND_API_KEY: "re_test", MAIL_FROM: "Sonora <a@b.it>" })).resolves.toBeDefined();
   });
 });
+
+describe("sendWelcomeEmail e sendOrderConfirmationEmail", () => {
+  const order = {
+    id: "3f2a9c1e-7a8d-4b5e-9f3a-2c1d0e9f8a7b",
+    total: "10.00",
+    customer: { name: "Mario Rossi", email: "mario@example.com", address: "Via Roma 1", city: "Milano", postal_code: "20100", province: "MI" },
+    items: [{ product_id: "p1", name: "Cavo", quantity: 1, unit_price: "10.00" }],
+  };
+
+  it("il benvenuto parte verso il nuovo utente, con il link al catalogo", async () => {
+    const { sendWelcomeEmail } = await loadMailService({ RESEND_API_KEY: "re_test", MAIL_FROM: "Sonora <noreply@sonora.example>", FRONTEND_ORIGIN: "https://sonora.example" });
+
+    await sendWelcomeEmail("giulia@example.com", "Giulia");
+
+    const [payload] = send.mock.calls[0]!;
+    expect(payload).toMatchObject({ to: "giulia@example.com", subject: "Ti diamo il benvenuto su Sonora", tags: [{ name: "type", value: "welcome" }] });
+    expect(payload.text).toContain("https://sonora.example/catalogo");
+  });
+
+  it("la conferma va all'email del checkout e porta all'ordine solo se c'è un account", async () => {
+    const { sendOrderConfirmationEmail } = await loadMailService({ RESEND_API_KEY: "re_test", MAIL_FROM: "Sonora <noreply@sonora.example>", FRONTEND_ORIGIN: "https://sonora.example" });
+
+    await sendOrderConfirmationEmail(order, true);
+    await sendOrderConfirmationEmail(order, false);
+
+    const [withAccount] = send.mock.calls[0]!;
+    const [guest] = send.mock.calls[1]!;
+    expect(withAccount).toMatchObject({ to: "mario@example.com", subject: "Ordine 3F2A9C1E confermato", tags: [{ name: "type", value: "order_confirmation" }] });
+    expect(withAccount.text).toContain(`https://sonora.example/account/ordini/${order.id}`);
+    expect(guest.text).not.toContain("/account/ordini/");
+  });
+});

@@ -10,15 +10,6 @@ const address = (name = "Mario Rossi") => ({
   province: "mi",
 });
 
-const card = (overrides: Record<string, unknown> = {}) => ({
-  brand: "visa",
-  last4: "4242",
-  holder: "Mario Rossi",
-  exp_month: 12,
-  exp_year: new Date().getFullYear() + 2,
-  ...overrides,
-});
-
 interface Saved {
   id: string;
   name?: string;
@@ -30,7 +21,6 @@ const defaultOf = (list: Saved[]) => list.filter((item) => item.is_default);
 describe("rotte riservate", () => {
   it.each([
     ["get", "/api/account/addresses"],
-    ["get", "/api/account/payment-methods"],
     ["patch", "/api/account/profile"],
     ["put", "/api/account/password"],
   ] as const)("%s %s risponde 401 senza sessione", async (method, path) => {
@@ -39,20 +29,29 @@ describe("rotte riservate", () => {
 });
 
 describe("profilo", () => {
-  it("cambia il nome senza chiedere la password", async () => {
+  it("cambia nome e cognome senza chiedere la password", async () => {
     const { agent, user } = await signedInAgent();
-    const res = await agent.patch("/api/account/profile").send({ name: "Nuovo Nome", email: user.email }).expect(200);
-    expect(res.body.user.name).toBe("Nuovo Nome");
+    const res = await agent
+      .patch("/api/account/profile")
+      .send({ first_name: "Maria Grazia", last_name: "De Luca", email: user.email })
+      .expect(200);
+    expect(res.body.user).toMatchObject({ first_name: "Maria Grazia", last_name: "De Luca" });
+  });
+
+  it("richiede sia il nome sia il cognome", async () => {
+    const { agent, user } = await signedInAgent();
+    const res = await agent.patch("/api/account/profile").send({ first_name: "Maria", last_name: "", email: user.email }).expect(400);
+    expect(res.body.error).toBe("Cognome non valido");
   });
 
   it("per cambiare email serve la password attuale", async () => {
     const { agent, user } = await signedInAgent();
     const email = uniqueEmail();
 
-    await agent.patch("/api/account/profile").send({ name: "Mario", email, currentPassword: "sbagliata" }).expect(400);
+    await agent.patch("/api/account/profile").send({ first_name: "Mario", last_name: "Rossi", email, currentPassword: "sbagliata" }).expect(400);
     const res = await agent
       .patch("/api/account/profile")
-      .send({ name: "Mario", email, currentPassword: user.password })
+      .send({ first_name: "Mario", last_name: "Rossi", email, currentPassword: user.password })
       .expect(200);
     expect(res.body.user.email).toBe(email);
   });
@@ -62,7 +61,7 @@ describe("profilo", () => {
     const other = await createUser();
     await agent
       .patch("/api/account/profile")
-      .send({ name: "Mario", email: other.email, currentPassword: user.password })
+      .send({ first_name: "Mario", last_name: "Rossi", email: other.email, currentPassword: user.password })
       .expect(409);
   });
 });
@@ -160,40 +159,3 @@ describe("indirizzi", () => {
   });
 });
 
-describe("metodi di pagamento", () => {
-  it("salva solo i campi previsti, mai il numero completo della carta", async () => {
-    const { agent, user } = await signedInAgent();
-    const res = await agent
-      .post("/api/account/payment-methods")
-      .send(card({ number: "4242424242424242", cvv: "123" }))
-      .expect(201);
-
-    expect(res.body[0]).toMatchObject({ brand: "visa", last4: "4242", is_default: true });
-    expect(JSON.stringify(res.body)).not.toContain("4242424242424242");
-
-    const { rows } = await pool.query("SELECT * FROM payment_methods WHERE user_id = $1", [user.id]);
-    expect(rows).toHaveLength(1);
-    expect(Object.keys(rows[0]).sort()).toEqual(
-      ["brand", "created_at", "exp_month", "exp_year", "holder", "id", "is_default", "last4", "user_id"],
-    );
-  });
-
-  it.each([
-    [card({ brand: "diners" }), "Circuito non valido"],
-    [card({ last4: "42" }), "Inserisci le ultime 4 cifre della carta"],
-    [card({ exp_month: 13 }), "Mese di scadenza non valido"],
-    [card({ exp_year: new Date().getFullYear() - 1 }), "La carta è scaduta"],
-    [card({ exp_year: new Date().getFullYear() + 21 }), "Anno di scadenza non valido"],
-  ])("rifiuta %j", async (body, error) => {
-    const { agent } = await signedInAgent();
-    const res = await agent.post("/api/account/payment-methods").send(body).expect(400);
-    expect(res.body.error).toBe(error);
-  });
-
-  it("elimina un metodo di pagamento", async () => {
-    const { agent } = await signedInAgent();
-    const created = await agent.post("/api/account/payment-methods").send(card()).expect(201);
-    const res = await agent.delete(`/api/account/payment-methods/${created.body[0].id}`).expect(200);
-    expect(res.body).toEqual([]);
-  });
-});

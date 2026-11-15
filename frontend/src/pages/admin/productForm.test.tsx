@@ -51,7 +51,7 @@ const catalogRoutes = {
 const renderAdmin = (url: string) => renderPage(<AdminRoutes />, { path: "/admin/*", url });
 
 beforeEach(() =>
-  setUser({ id: "00000000-0000-4000-8000-0000000000ad", name: "Admin", email: "admin@example.com", role: "admin" }),
+  setUser({ id: "00000000-0000-4000-8000-0000000000ad", first_name: "Anna", last_name: "Admin", email: "admin@example.com", role: "admin" }),
 );
 afterEach(() => setUser(null));
 

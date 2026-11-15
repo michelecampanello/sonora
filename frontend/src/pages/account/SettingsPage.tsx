@@ -49,7 +49,8 @@ function ProfileForm() {
     const data = new FormData(form)
     void submit(async () => {
       const response = await sendJson<AuthResponse>("PATCH", profilePath, {
-        name: String(data.get("name") ?? ""),
+        first_name: String(data.get("first_name") ?? ""),
+        last_name: String(data.get("last_name") ?? ""),
         email: String(data.get("email") ?? ""),
         currentPassword: String(data.get("profilePassword") ?? ""),
       })
@@ -62,15 +63,24 @@ function ProfileForm() {
     <form onSubmit={onSubmit} className="flex max-w-md flex-col gap-4">
       <h2 className="border-t pt-3 text-display text-3xl">Dati personali</h2>
       {/* key: dopo il salvataggio i campi ripartono dai valori aggiornati */}
-      <FormField
-        key={`name-${user.name}`}
-        label="Nome e cognome"
-        name="name"
-        autoComplete="name"
-        minLength={2}
-        maxLength={100}
-        defaultValue={user.name}
-      />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FormField
+          key={`first-${user.first_name}`}
+          label="Nome"
+          name="first_name"
+          autoComplete="given-name"
+          maxLength={50}
+          defaultValue={user.first_name}
+        />
+        <FormField
+          key={`last-${user.last_name}`}
+          label="Cognome"
+          name="last_name"
+          autoComplete="family-name"
+          maxLength={50}
+          defaultValue={user.last_name}
+        />
+      </div>
       <FormField
         key={`email-${user.email}`}
         label="Email"

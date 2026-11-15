@@ -7,7 +7,7 @@ import { SettingsPage } from "@/pages/account/SettingsPage";
 import { systemPrefersDark } from "@/test/matchMedia";
 import { renderPage } from "@/test/render";
 
-const giulia: User = { id: "00000000-0000-4000-8000-000000000001", name: "Giulia Bianchi", email: "giulia@example.com", role: "customer" };
+const giulia: User = { id: "00000000-0000-4000-8000-000000000001", first_name: "Giulia", last_name: "Bianchi", email: "giulia@example.com", role: "customer" };
 
 const renderSettings = () => renderPage(<SettingsPage />);
 
