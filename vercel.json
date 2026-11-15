@@ -5,8 +5,7 @@
     "backend": {
       "root": "backend",
       "framework": "express",
-      "buildCommand": "npm run build",
-      "entrypoint": "dist/app.js"
+      "entrypoint": "src/app.ts"
     },
     "frontend": {
       "root": "frontend",
