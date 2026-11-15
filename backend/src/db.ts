@@ -1,3 +1,4 @@
+import { attachDatabasePool } from "@vercel/functions";
 import pg from "pg";
 
 if (!process.env.DATABASE_URL) {
@@ -11,3 +12,7 @@ export const pool = new pg.Pool({
   // un errore di una sola lettera, come "humbuker", non troverebbe "humbucker".
   options: "-c pg_trgm.word_similarity_threshold=0.5",
 });
+
+// Su Vercel la funzione resta attiva il tempo necessario a chiudere le connessioni inattive prima di essere sospesa,
+// così non restano connessioni aperte e dimenticate sul database. Altrove non fa nulla.
+attachDatabasePool(pool);

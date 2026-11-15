@@ -1,23 +1,36 @@
 # Sonora — e-commerce di strumenti musicali
 
-Progetto full stack in TypeScript: React (frontend) + Node.js/Express (backend) + PostgreSQL.
+Progetto full stack in TypeScript: React (frontend) + Node.js/Express (backend) + PostgreSQL, pubblicabile su Vercel.
 
 > Nome provvisorio: sostituiscilo con il nome che sceglierai per il negozio.
 > Marche, prodotti, clienti e recensioni nei dati di prova sono inventati. I clienti di prova non possono accedere: servono solo come autori delle recensioni.
+> È un progetto portfolio: nessun ordine viene spedito e nessun pagamento è reale.
+
+## Funzionalità
+
+- **Catalogo**: categorie e sottocategorie, ricerca che tollera gli errori di battitura, filtri per marca, prezzo e disponibilità, ordinamento e paginazione. Le foto dei prodotti arrivano da Cloudinary, ridimensionate per ogni schermo.
+- **Scheda prodotto**: galleria, caratteristiche tecniche, disponibilità, recensioni con media e voti per stella.
+- **Recensioni**: voto da 1 a 5 e commento facoltativo, una per persona e prodotto; badge "Acquisto verificato" per chi l'ha comprato.
+- **Carrello e checkout**: carrello salvato nel browser, ordine anche senza account, pagamento alla consegna, email di conferma.
+- **Account**: registrazione con email di benvenuto, accesso, reset della password via email, ordini, indirizzi salvati, nome e cognome, tema chiaro o scuro.
+- **Pannello admin**: dashboard, ordini con i loro stati, prodotti con caratteristiche e foto caricate su Cloudinary, modifica di un prodotto anche direttamente dalla sua pagina nel negozio, moderazione delle recensioni.
 
 ## Stato del progetto
 
-- [x] **Tappa 1** — Backend base: database, catalogo, categorie, marche
-- [ ] Tappa 2 — Frontend catalogo (lista, dettaglio, ricerca, filtri)
+- [x] Tappa 1 — Backend base: database, catalogo, categorie, marche
+- [x] Tappa 2 — Frontend catalogo (lista, dettaglio, ricerca, filtri)
 - [x] Tappa 3 — Carrello
 - [x] Tappa 4 — Registrazione e login (JWT)
 - [x] Tappa 5 — Checkout e area personale (ordini, indirizzi, impostazioni). Il pagamento è solo alla consegna
 - [x] Tappa 6 — Pannello admin: ordini (stati, annullamento con ritorno in magazzino), creazione e modifica dei prodotti con caratteristiche e foto caricate su Cloudinary
-- [ ] Tappa 7 — Pubblicazione online
+- [x] Tappa 7 — Email transazionali, recensioni, SEO e prestazioni
+- [ ] Tappa 8 — Pubblicazione online: la configurazione per Vercel è pronta (vedi [Pubblicazione su Vercel](#pubblicazione-su-vercel))
 
 ## Avvio in locale
 
 Requisiti: Node.js 20 o superiore, PostgreSQL.
+
+### Backend
 
 ```bash
 cd backend
@@ -37,17 +50,50 @@ npm run db:setup
 npm run dev
 ```
 
-Altri comandi:
+Il server parte su `http://localhost:3000`. Prova: `http://localhost:3000/api/health`
+
+Le altre variabili di `backend/.env` sono facoltative in sviluppo: `RESEND_API_KEY` e `MAIL_FROM` per inviare davvero le email (senza, la console dice quale sarebbe partita), `CLOUDINARY_URL` per caricare le foto dal pannello admin. Le immagini dei dati di prova sono già su Cloudinary e si vedono anche senza.
+
+Per diventare amministratore registrati dal sito e poi lancia `npm run make-admin -- tua@email.it`.
+
+### Frontend
+
+In un secondo terminale:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Il sito si apre su `http://localhost:5173`. Vite inoltra le richieste `/api` al backend sulla porta 3000, quindi sito e API sono sullo stesso indirizzo, come online.
+
+### Comandi
+
+Backend (`backend/`):
 
 | Comando | Cosa fa |
 |---|---|
+| `npm run db:setup` | Ricrea tutte le tabelle e inserisce i dati di prova (**cancella i dati esistenti**) |
 | `npm run db:migrate` | Aggiorna un database già esistente senza cancellare i dati |
 | `npm run typecheck` | Controlla i tipi senza generare file |
 | `npm run build` | Compila TypeScript in JavaScript nella cartella `dist/` |
-| `npm start` | Avvia la versione compilata (quella da usare online) |
+| `npm start` | Avvia la versione compilata |
 | `npm test` | Esegue i test (`npm run test:watch` li rilancia a ogni modifica) |
 | `npm run make-admin -- email@example.com` | Dà il ruolo di amministratore a un account già registrato |
 | `npm run upload-images -- <cartella> <cartella-cloudinary>` | Carica su Cloudinary le immagini PNG/JPG/WebP di una cartella, con il nome del file come id (es. quelle dei dati di prova in `sonora/seed/prodotti`) |
+
+Frontend (`frontend/`):
+
+| Comando | Cosa fa |
+|---|---|
+| `npm run dev` | Avvia il sito in sviluppo, con l'aggiornamento immediato delle modifiche |
+| `npm run build` | Controlla i tipi e crea la versione da pubblicare in `dist/` |
+| `npm run preview` | Mostra in locale la versione di `dist/` |
+| `npm run typecheck` | Controlla i tipi senza generare file |
+| `npm run lint` | Controlla il codice con ESLint |
+| `npm run format` | Formatta il codice con Prettier |
+| `npm test` | Esegue i test (`npm run test:watch` li rilancia a ogni modifica) |
 
 ## Test
 
@@ -57,11 +103,63 @@ Entrambe le parti usano [Vitest](https://vitest.dev). In `backend/` e in `fronte
 npm test
 ```
 
-- **Backend** (`backend/tests/`): test unitari sulla validazione e test d'integrazione che chiamano le API vere con Supertest, su un database PostgreSQL. Coprono catalogo e filtri, registrazione, accesso, reset della password, limite ai tentativi, area personale e ordini. Per gli ordini verificano il totale calcolato dal server, il magazzino scalato in una transazione e due acquisti simultanei dell'ultimo pezzo.
-  I test usano un database separato, creato e riempito con `schema.sql` e `seed.sql` a ogni esecuzione: è quello di `DATABASE_URL` con `_test` in coda al nome (es. `music_store_test`), oppure quello indicato in `TEST_DATABASE_URL`. Il nome deve finire con `_test`, così il database di sviluppo non viene mai cancellato. Le email non vengono inviate.
-- **Frontend** (`src/**/*.test.ts(x)`, accanto al codice): Testing Library con jsdom e un finto `fetch`, senza backend. Coprono formattazione dei prezzi, filtri del catalogo nell'URL, carrello salvato nel browser, pagina del carrello e pagina di accesso.
+- **Backend** (`backend/tests/`): test unitari su validazione, contenuto delle email e firma di Cloudinary, e test d'integrazione che chiamano le API vere con Supertest, su un database PostgreSQL. Coprono catalogo e filtri, registrazione, accesso, reset della password, limite ai tentativi, area personale, ordini, recensioni, pannello admin e invio delle email. Per gli ordini verificano il totale calcolato dal server, il magazzino scalato in una transazione e due acquisti simultanei dell'ultimo pezzo.
+  I test usano un database separato, creato e riempito con `schema.sql` e `seed.sql` a ogni esecuzione: è quello di `DATABASE_URL` con `_test` in coda al nome (es. `music_store_test`), oppure quello indicato in `TEST_DATABASE_URL`. Il nome deve finire con `_test`, così il database di sviluppo non viene mai cancellato. Le email non vengono inviate e Cloudinary non viene mai chiamato davvero.
+- **Frontend** (`src/**/*.test.ts(x)`, accanto al codice): Testing Library con jsdom e un finto `fetch`, senza backend. Coprono formattazione, filtri del catalogo nell'URL, carrello, accesso, menu dell'account, tema, impostazioni, recensioni, modifica dei prodotti dal pannello e dalla scheda, metadati SEO e caricamento delle immagini.
 
-Il server parte su `http://localhost:3000`. Prova: `http://localhost:3000/api/health`
+## Pubblicazione su Vercel
+
+Tutto il progetto va su un unico progetto Vercel, con un solo dominio:
+
+- il frontend è un sito statico, creato da `npm run build` in `frontend/dist`;
+- il backend Express gira come funzione serverless in [`api/index.js`](api/index.js), che importa la versione compilata in `backend/dist`;
+- [`vercel.json`](vercel.json) installa e compila le due parti, manda le richieste `/api/*` alla funzione e tutte le altre a `index.html`, così le pagine di React Router funzionano anche aprendole da un link. I file in `/assets` hanno nomi che cambiano a ogni versione, quindi i browser li tengono in cache per un anno.
+
+Sito e API sullo stesso dominio: il cookie di sessione funziona senza configurare CORS.
+
+### 1. Database
+
+Serve un PostgreSQL raggiungibile da internet, per esempio [Neon](https://neon.tech) (piano gratuito; scegli la regione di Francoforte, vicina alla regione `fra1` delle funzioni in `vercel.json`). Usa l'indirizzo **con il pooling delle connessioni** (in Neon contiene `-pooler`): le funzioni serverless aprono molte connessioni brevi.
+
+Crea le tabelle e i dati di prova dal tuo computer, indicando l'indirizzo del database online:
+
+```bash
+cd backend
+psql "postgres://…" -q -1 -v ON_ERROR_STOP=1 -f db/schema.sql -f db/seed.sql
+```
+
+Per gli aggiornamenti successivi lancia invece le migrazioni (`db/migrations/*.sql`) con lo stesso indirizzo: non cancellano i dati.
+
+### 2. Progetto Vercel
+
+Importa il repository su [vercel.com/new](https://vercel.com/new) lasciando la cartella principale (*Root Directory*) alla radice del repository: comandi di installazione e build sono già in `vercel.json`.
+
+Nelle impostazioni del progetto (*Settings → Environment Variables*) aggiungi:
+
+| Variabile | Valore |
+|---|---|
+| `DATABASE_URL` | L'indirizzo del database, con il pooling |
+| `JWT_SECRET` | Almeno 32 caratteri casuali: `node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"` |
+| `FRONTEND_ORIGIN` | L'indirizzo del sito, es. `https://sonora.vercel.app`: serve ai link nelle email |
+| `RESEND_API_KEY` | Chiave di [Resend](https://resend.com/api-keys) |
+| `MAIL_FROM` | Mittente con un dominio verificato su Resend, es. `Sonora <noreply@tuodominio.it>` |
+| `CLOUDINARY_URL` | Da [console.cloudinary.com](https://console.cloudinary.com), alla voce *API Keys* |
+
+Non impostare `NODE_ENV`: Vercel lo mette già a `production` nelle funzioni, e impostato a mano durante l'installazione salterebbe gli strumenti di build. `VITE_API_URL` non serve, perché l'API è sullo stesso dominio.
+
+In produzione il backend non parte senza `RESEND_API_KEY` e `MAIL_FROM`: senza le email di reset e conferma non arriverebbero.
+
+### 3. Dopo la prima pubblicazione
+
+- Registrati dal sito e diventa amministratore lanciando dal tuo computer `DATABASE_URL="postgres://…" npm run make-admin -- tua@email.it` in `backend/`.
+- Prova `https://<tuo-sito>/api/health`: deve rispondere `{"status":"ok"}`.
+
+### Cosa cambia rispetto al server locale
+
+- Le email e la pulizia delle foto su Cloudinary partono dopo la risposta: su Vercel passano da `waitUntil` ([`backend/src/background.ts`](backend/src/background.ts)), che tiene attiva la funzione finché hanno finito. In locale non cambia nulla.
+- Il pool di connessioni a Postgres è registrato con `attachDatabasePool`, così Vercel chiude le connessioni inattive prima di sospendere la funzione.
+- Express si fida dell'header `X-Forwarded-For` di Vercel (`trust proxy`), per vedere l'IP vero di chi visita.
+- Il limite ai tentativi di accesso è tenuto in memoria, quindi vale per ogni istanza della funzione e non per tutto il sito insieme: protegge dai tentativi ripetuti, ma con traffico alto Vercel può dividerli su più istanze. Per un limite condiviso servirebbe uno store esterno, come Redis.
 
 ## API
 
@@ -128,18 +226,19 @@ Esempio: `/api/products?category=chitarre&maxPrice=400&sort=price_asc`
 
 ## Scelte tecniche
 
+### Backend
+
 - **Backend a tre livelli**: `routes/` collega URL e controller, `controllers/` legge e valida la richiesta e sceglie la risposta HTTP, `services/` contiene le query e la logica di business, senza conoscere Express.
-- **Sessione con JWT in un cookie `httpOnly` e `SameSite=Lax`**: JavaScript non può leggere il token e gli altri siti non possono usarlo. Online il sito e l'API devono stare sullo stesso dominio base (es. `www.example.com` e `api.example.com`), oppure l'API va inoltrata dal dominio del sito.
+- **Sessione con JWT in un cookie `httpOnly` e `SameSite=Lax`**: JavaScript non può leggere il token e gli altri siti non possono usarlo. Online sito e API devono stare sullo stesso dominio: su Vercel lo sono, perché l'API è una funzione dello stesso progetto.
 - **Reset della password con link monouso** valido un'ora: nel database resta solo l'impronta SHA-256 del token, e il token viaggia dopo il `#` dell'URL, quindi non finisce nei log dei server. L'email parte con [Resend](https://resend.com), in HTML e in testo semplice. Se l'invio fallisce il link viene cancellato, così si può chiederne subito un altro invece di aspettare i 2 minuti fra una richiesta e l'altra.
 - **Email di benvenuto e di conferma dell'ordine**, sempre con Resend. Partono dopo aver risposto al browser: se l'invio non riesce l'errore finisce nei log del server, ma l'account o l'ordine restano validi. La conferma riepiloga articoli, totale e indirizzo di spedizione, e va all'email indicata nel checkout; per chi ha fatto l'accesso porta anche alla pagina dell'ordine nell'area personale.
   Configurazione in `backend/.env`: `RESEND_API_KEY` (da [resend.com/api-keys](https://resend.com/api-keys)) e `MAIL_FROM`, un mittente con un dominio verificato su Resend. In sviluppo, senza `MAIL_FROM` si usa l'indirizzo di prova `onboarding@resend.dev`; senza `RESEND_API_KEY` nessuna email parte e la console del backend dice quale sarebbe partita (per il reset, con il link). In produzione il server non parte se manca una delle due.
 - **Pannello admin nello stesso frontend**, sotto `/admin`: React.lazy lo mette in un file JavaScript separato, che chi compra non scarica. Il frontend nasconde il pannello a chi non è admin solo per comodità; a proteggere i dati è il backend, con il middleware `requireAdmin` su tutte le rotte `/api/admin`. Un admin si crea solo con `npm run make-admin`, mai da un'API.
-- **Foto dei prodotti su Cloudinary, caricate direttamente dal browser**: il backend firma soltanto la richiesta (SHA-1 dei parametri, come da [documentazione](https://cloudinary.com/documentation/authentication_signatures)), quindi il segreto API non arriva mai al browser e i file non passano dal nostro server. La firma fissa formati ammessi e cartella, e vale un'ora. Si configura con `CLOUDINARY_URL` in `backend/.env`; senza, le immagini si indicano con un indirizzo come prima.
+- **Foto dei prodotti su Cloudinary, caricate direttamente dal browser**: il backend firma soltanto la richiesta (SHA-1 dei parametri, come da [documentazione](https://cloudinary.com/documentation/authentication_signatures)), quindi il segreto API non arriva mai al browser e i file non passano dal nostro server. La firma fissa formati ammessi e cartella, e vale un'ora. Si configura con `CLOUDINARY_URL` in `backend/.env`; senza, le immagini si indicano con un indirizzo.
   Di ogni foto caricata si salva il `public_id` restituito da Cloudinary. Quando una foto viene tolta da un prodotto, e nessun altro prodotto la usa, dopo il salvataggio viene cancellata da Cloudinary e dalla cache della CDN. Le immagini indicate con un indirizzo non vengono mai cancellate.
-- **Password con bcrypt e limite ai tentativi** su login e registrazione. Il limite è per indirizzo IP: dietro un proxy, online, va configurato `trust proxy` in Express.
+- **Password con bcrypt e limite ai tentativi** su login e registrazione. Il limite è per indirizzo IP: su Vercel Express legge l'IP vero dall'header del proxy (`trust proxy`).
 - **TypeScript in modalità `strict`**, con i tipi delle risposte API raccolti in `src/types.ts` (riutilizzabili nel frontend).
 - **Validazione della query string**: i parametri vengono convertiti e controllati (`asString`, `asNumber`) invece di fidarsi di ciò che arriva dal client.
-
 - **Query parametrizzate** (`$1`, `$2`…) in tutte le richieste: protezione dalla SQL injection.
 - **Ordinamento da una lista di valori ammessi**, mai inserito direttamente dall'input dell'utente.
 - **Categorie ad albero** con `parent_id`: filtrando per "Chitarre" si ottengono anche elettriche, acustiche e classiche.
@@ -150,6 +249,18 @@ Esempio: `/api/products?category=chitarre&maxPrice=400&sort=price_asc`
 - **Chiavi primarie UUID** (`gen_random_uuid()`): gli id non rivelano quanti prodotti o ordini esistono. Il seed li ricava da numeri semplici, così restano uguali a ogni rilancio.
 - **Indici** su categoria, marca e prezzo per velocizzare i filtri del catalogo.
 - **Più immagini per prodotto** nella tabella `product_images`: la prima secondo `sort_order` è la copertina usata nelle card.
+- **Immagini dei dati di prova su Cloudinary**: PNG caricati con `npm run upload-images` nella cartella `sonora/seed`, separata dalle foto caricate dal pannello. Non hanno un `public_id` salvato nel database, quindi togliendole da un prodotto non vengono cancellate.
 - **Ricerca con `pg_trgm`**: trova i prodotti anche con errori di battitura, usando un indice GIN.
 - **Prodotti nascosti con `active = false`**: spariscono dal negozio senza essere cancellati, così gli ordini passati restano validi.
 - **`updated_at` gestita da un trigger**: si aggiorna a ogni modifica del prodotto, senza dipendere dal codice dell'API.
+- **Recensioni con un vincolo `UNIQUE (product_id, user_id)`**: scriverne una seconda la modifica invece di aggiungerla. Media e numero arrivano con il catalogo, e l'autore si mostra con nome e iniziale del cognome. "Acquisto verificato" si calcola dagli ordini non annullati, non si salva.
+- **Migrazioni che si possono rilanciare** (`IF NOT EXISTS`, aggiornamenti condizionati): `db:migrate` le esegue tutte ogni volta, senza tenere traccia di quali sono già state applicate.
+
+### Frontend
+
+- **React 19, Vite, Tailwind CSS e componenti [shadcn/ui](https://ui.shadcn.com) su Base UI**, con React Router. Il linguaggio visivo è quello di un banco regia: pannelli pieni, etichette in monospazio, spie luminose per disponibilità e stati.
+- **Tema chiaro e scuro** con le variabili CSS: si sceglie nelle impostazioni o dall'header, e uno script in `index.html` applica il tema salvato prima del primo disegno, senza lampi.
+- **Pagine caricate a richiesta**: ogni pagina è un file JavaScript a parte, scaricato solo quando serve; la home resta nel file principale. Anche il form di modifica dei prodotti si scarica solo quando un admin lo apre.
+- **Immagini da Cloudinary nel formato e nella dimensione giusti** (`f_auto`, `q_auto`, `srcset`): WebP o AVIF, larghe quanto serve allo schermo. Mentre arrivano si vede una miniatura sfocata di 24 pixel, poi l'immagine entra con una dissolvenza.
+- **SEO**: titolo, description e indirizzo canonico per ogni pagina, `noindex` sulle pagine personali e di servizio, dati strutturati schema.org dei prodotti con prezzo, disponibilità e voto medio, `robots.txt`.
+- **Accessibilità**: link veri nei menu, etichette per i lettori di schermo, voto a stelle usabile da tastiera, animazioni ridotte se il sistema lo chiede.

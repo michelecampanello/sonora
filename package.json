@@ -1,0 +1,9 @@
+{
+  "name": "sonora",
+  "private": true,
+  "type": "module",
+  "description": "Configurazione per Vercel: frontend in frontend/, backend in backend/, la funzione dell'API in api/",
+  "engines": {
+    "node": ">=20"
+  }
+}

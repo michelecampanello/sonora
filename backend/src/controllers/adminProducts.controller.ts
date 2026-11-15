@@ -1,4 +1,5 @@
 import { asyncHandler } from "../asyncHandler.js";
+import { runAfterResponse } from "../background.js";
 import {
   createProduct,
   findAdminProduct,
@@ -209,7 +210,7 @@ export const putProduct = asyncHandler<{ id: string }, AdminProductDetail | ApiE
     const replaced = await replaceProduct(req.params.id, input.value);
     if (!replaced) return res.status(404).json(NOT_FOUND);
     // Dopo il salvataggio, e senza farlo aspettare: se Cloudinary non risponde resta solo una foto inutilizzata
-    void deleteUnusedImages(replaced.unusedCloudinaryIds);
+    runAfterResponse(deleteUnusedImages(replaced.unusedCloudinaryIds));
     return res.json(replaced.product);
   } catch (err) {
     const [status, body] = saveError(err);

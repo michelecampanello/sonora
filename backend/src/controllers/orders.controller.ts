@@ -1,4 +1,5 @@
 import { asyncHandler } from "../asyncHandler.js";
+import { runAfterResponse } from "../background.js";
 import { isEmail } from "../email.js";
 import { isUuid } from "../uuid.js";
 import { sendOrderConfirmationEmail } from "../services/mail.service.js";
@@ -71,7 +72,7 @@ export const postOrder = asyncHandler<{}, OrderConfirmation | ApiError, unknown,
 
     res.status(201).json(order);
     // Dopo la risposta: l'ordine è già salvato, e un problema con l'email non deve farlo sembrare fallito
-    sendOrderConfirmationEmail(order, Boolean(req.user)).catch((err: unknown) => console.error(err));
+    runAfterResponse(sendOrderConfirmationEmail(order, Boolean(req.user)));
     return undefined;
   },
 );

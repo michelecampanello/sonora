@@ -1,4 +1,5 @@
 import type { CookieOptions, Request, Response } from "express";
+import { runAfterResponse } from "../background.js";
 import { asyncHandler } from "../asyncHandler.js";
 import { isEmail } from "../email.js";
 import { SESSION_COOKIE } from "../middleware/auth.middleware.js";
@@ -43,7 +44,7 @@ export const register = asyncHandler<{}, AuthResponse | ApiError, unknown, unkno
     await startSession(res, user);
     res.status(201).json({ user });
     // Dopo la risposta: l'account esiste comunque, anche se l'email non parte
-    sendWelcomeEmail(user.email, user.first_name).catch((err: unknown) => console.error(err));
+    runAfterResponse(sendWelcomeEmail(user.email, user.first_name));
     return undefined;
   } catch (err) {
     if (err instanceof EmailTakenError) {
@@ -75,7 +76,7 @@ export const forgotPassword = asyncHandler<{}, { status: string } | ApiError, un
 
   // Si risponde prima di lavorare: nemmeno i tempi di risposta rivelano se l'email è registrata
   res.json({ status: "ok" });
-  requestPasswordReset(email).catch((err: unknown) => console.error(err));
+  runAfterResponse(requestPasswordReset(email));
   return undefined;
 });
 
