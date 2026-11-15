@@ -113,7 +113,7 @@ Il repository è un unico progetto Vercel con due **servizi**, definiti in [`ver
 
 | Servizio | Cartella | Cosa è | Pubblico su |
 |---|---|---|---|
-| `backend` | `backend/` | L'API Express, eseguita come funzione a partire da `src/app.ts` (Vercel compila il TypeScript da sé) | `/api/*` |
+| `backend` | `backend/` | L'API Express, eseguita come funzione a partire da `src/server.mts` (Vercel compila il TypeScript da sé; `.mts` diventa `.mjs`, che Node carica sempre come modulo ES) | `/api/*` |
 | `frontend` | `frontend/` | Il sito React, creato da Vite in `dist/` | tutto il resto |
 
 - Ogni servizio si installa e si compila da solo nella sua cartella.
