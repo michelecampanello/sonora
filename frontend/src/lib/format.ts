@@ -30,3 +30,11 @@ export function greeting(firstName: string, now: Date = new Date()): string {
   const salute = hour >= 5 && hour < 12 ? "Buongiorno" : hour >= 12 && hour < 18 ? "Buon pomeriggio" : "Buonasera";
   return firstName ? `${salute}, ${firstName}` : salute;
 }
+
+const RATING_FORMAT = new Intl.NumberFormat("it-IT", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+/** Un voto medio all'italiana, sempre con un decimale: 4.3 → "4,3", 5 → "5,0" */
+export const formatRating = (rating: number): string => RATING_FORMAT.format(rating);
+
+/** "1 recensione", "3 recensioni" */
+export const reviewCount = (count: number): string => `${count} ${count === 1 ? "recensione" : "recensioni"}`;

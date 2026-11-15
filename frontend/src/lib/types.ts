@@ -77,6 +77,9 @@ export interface ProductSummary {
   brand_id: string;
   brand_slug: string;
   brand: string;
+  /** Media dei voti con un decimale, null se il prodotto non ha recensioni */
+  rating: number | null;
+  review_count: number;
 }
 
 export interface ProductSpec {
@@ -197,3 +200,28 @@ export interface AdminProductDetail extends AdminProduct {
 
 /** Quello che il form invia per creare o modificare un prodotto */
 export type ProductInput = Omit<AdminProductDetail, "id" | "slug" | "brand" | "category">;
+
+export interface Review {
+  id: string;
+  rating: number;
+  comment: string;
+  /** Nome e iniziale del cognome, es. "Giulia B." */
+  author: string;
+  /** Chi l'ha scritta ha comprato il prodotto */
+  verified: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReviewSummary {
+  average: number | null;
+  count: number;
+  /** Recensioni per voto: indice 0 = 1 stella, indice 4 = 5 stelle */
+  distribution: [number, number, number, number, number];
+}
+
+export interface ReviewsResponse extends Paginated<Review> {
+  summary: ReviewSummary;
+  /** La recensione di chi sta guardando, se ne ha scritta una */
+  mine: Review | null;
+}

@@ -7,6 +7,7 @@ import {
   postProduct,
   putProduct,
 } from "../controllers/adminProducts.controller.js";
+import { deleteReview } from "../controllers/reviews.controller.js";
 import { postUploadSignature } from "../controllers/uploads.controller.js";
 import { loadUser, requireAdmin, requireAuth } from "../middleware/auth.middleware.js";
 
@@ -26,6 +27,8 @@ router.post("/products", postProduct);
 router.get("/products/:id", getAdminProduct);
 router.put("/products/:id", putProduct); // tutti i dati, dal form di modifica
 router.patch("/products/:id", patchProduct); // solo alcuni campi, dall'elenco
+
+router.delete("/reviews/:id", deleteReview); // moderazione
 
 // Il browser carica le immagini direttamente su Cloudinary: qui si firma soltanto la richiesta
 router.post("/uploads/signature", postUploadSignature);

@@ -80,6 +80,8 @@ export const passwordPath = "/api/account/password";
 export const addressesPath = "/api/account/addresses";
 export const addressPath = (id: string) => `${addressesPath}/${encodeURIComponent(id)}`;
 export const productPath = (slug: string) => `/api/products/${encodeURIComponent(slug)}`;
+export const reviewsPath = (slug: string, page: number) => `${productPath(slug)}/reviews?page=${page}`;
+export const myReviewPath = (slug: string) => `${productPath(slug)}/reviews/mine`;
 export const categoriesPath = "/api/categories";
 export const brandsPath = "/api/brands";
 
@@ -100,4 +102,5 @@ export function adminProductsPath({ q, lowStock, page }: { q?: string | undefine
 }
 export const adminProductPath = (id: string) => `/api/admin/products/${encodeURIComponent(id)}`;
 export const adminNewProductPath = "/api/admin/products";
+export const adminReviewPath = (id: string) => `/api/admin/reviews/${encodeURIComponent(id)}`;
 export const uploadSignaturePath = "/api/admin/uploads/signature";

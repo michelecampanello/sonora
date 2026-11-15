@@ -18,6 +18,8 @@ export function makeProduct(overrides: Partial<ProductSummary> = {}): ProductSum
     brand_id: "00000000-0000-4000-8000-999999999999",
     brand_slug: "nordwood",
     brand: "Nordwood",
+    rating: null,
+    review_count: 0,
     ...overrides,
   };
 }

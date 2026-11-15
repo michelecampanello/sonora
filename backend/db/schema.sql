@@ -1,5 +1,5 @@
 -- Schema del database. Si può rilanciare: elimina e ricrea le tabelle.
-DROP TABLE IF EXISTS password_reset_tokens, payment_methods, addresses, order_items, orders, users, product_images, product_specs, products, brands, categories CASCADE;
+DROP TABLE IF EXISTS reviews, password_reset_tokens, payment_methods, addresses, order_items, orders, users, product_images, product_specs, products, brands, categories CASCADE;
 
 CREATE EXTENSION IF NOT EXISTS pg_trgm;  -- ricerca tollerante agli errori di battitura
 
@@ -178,3 +178,17 @@ CREATE INDEX idx_product_images_product ON product_images(product_id, sort_order
 CREATE INDEX idx_orders_user ON orders(user_id, created_at DESC);
 CREATE INDEX idx_products_search   ON products
   USING gin (name gin_trgm_ops, description gin_trgm_ops, sku gin_trgm_ops);
+
+-- Recensioni dei clienti: voto da 1 a 5 e un commento facoltativo
+CREATE TABLE reviews (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  rating     SMALLINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+  comment    TEXT NOT NULL DEFAULT '' CHECK (length(comment) <= 2000),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (product_id, user_id)  -- una recensione per persona e prodotto: si modifica, non se ne aggiunge un'altra
+);
+
+CREATE INDEX idx_reviews_product ON reviews(product_id, created_at DESC);

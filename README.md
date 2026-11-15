@@ -68,6 +68,9 @@ Il server parte su `http://localhost:3000`. Prova: `http://localhost:3000/api/he
 |---|---|---|
 | GET | `/api/products` | Catalogo con filtri, ordinamento e paginazione |
 | GET | `/api/products/:slug` | Dettaglio prodotto con caratteristiche tecniche e immagini |
+| GET | `/api/products/:slug/reviews?page=` | Recensioni, dalla più recente, con media e voti per stella; con l'accesso anche la propria |
+| PUT | `/api/products/:slug/reviews/mine` | Scrive o modifica la propria recensione (voto 1-5, commento facoltativo); richiede l'accesso |
+| DELETE | `/api/products/:slug/reviews/mine` | Elimina la propria recensione |
 | GET | `/api/categories` | Categorie con sottocategorie |
 | GET | `/api/brands` | Elenco marche |
 | GET | `/api/brands/:slug/products` | Prodotti di una marca |
@@ -101,6 +104,7 @@ Tutte le rotte rispondono 401 senza sessione e 403 a chi non è amministratore.
 | GET | `/api/admin/products/:id` | Il prodotto completo, per il form di modifica |
 | PUT | `/api/admin/products/:id` | Sostituisce tutti i dati del prodotto; lo slug resta lo stesso |
 | PATCH | `/api/admin/products/:id` | Modifica solo prezzo, magazzino, visibilità o evidenza |
+| DELETE | `/api/admin/reviews/:id` | Elimina una recensione qualsiasi (moderazione) |
 | POST | `/api/admin/uploads/signature` | Firma il caricamento di una foto su Cloudinary; 503 se `CLOUDINARY_URL` manca |
 
 Il pagamento avviene alla consegna, quindi un ordine passa da *in lavorazione* a *spedito* e poi a *pagato*. Si può annullare finché non è pagato. I prodotti non si eliminano, perché gli ordini fanno riferimento a loro: per toglierli dal negozio si nascondono.
