@@ -113,7 +113,7 @@ Il repository è un unico progetto Vercel con due **servizi**, definiti in [`ver
 
 | Servizio | Cartella | Cosa è | Pubblico su |
 |---|---|---|---|
-| `backend` | `backend/` | L'API Express, eseguita come funzione a partire da `src/server.mts` (Vercel compila il TypeScript da sé; `.mts` diventa `.mjs`, che Node carica sempre come modulo ES) | `/api/*` |
+| `backend` | `backend/` | L'API Express, eseguita come funzione a partire da `src/app.ts` (Vercel compila il TypeScript da sé) | `/api/*` |
 | `frontend` | `frontend/` | Il sito React, creato da Vite in `dist/` | tutto il resto |
 
 - Ogni servizio si installa e si compila da solo nella sua cartella.
@@ -121,6 +121,7 @@ Il repository è un unico progetto Vercel con due **servizi**, definiti in [`ver
 - Dentro il servizio `frontend`, ogni pagina che non è un file porta a `index.html`, così le pagine di React Router funzionano anche aprendole da un link. I file in `/assets` hanno nomi che cambiano a ogni versione, quindi i browser li tengono in cache per un anno.
 - I servizi non si chiamano tra loro dal server: il frontend è un sito statico, e le chiamate a `/api` partono dal browser verso lo stesso dominio. Per questo non servono *bindings*, e il cookie di sessione funziona senza configurare CORS.
 - Le funzioni girano nella regione `fra1` (Francoforte).
+- Il `package.json` alla radice serve solo a dichiarare `"type": "module"`: Vercel compila il backend in un file `.js` alla radice della funzione, e senza questa riga Node lo leggerebbe come CommonJS ("Cannot use import statement outside a module").
 
 Per provare tutto insieme in locale come su Vercel: `vercel dev` dalla radice del repository (richiede la [CLI di Vercel](https://vercel.com/docs/cli) e il progetto collegato con `vercel link`). Per lo sviluppo di tutti i giorni bastano i due `npm run dev` descritti sopra.
 
