@@ -39,7 +39,7 @@ export function OrderDetailPage() {
       <ul className="border-t">
         {order.items.map((item) => {
           const image = (
-            <ProductImage name={item.name} imageUrl={item.image_url} categorySlug="" />
+            <ProductImage name={item.name} imageUrl={item.image_url} categorySlug="" sizes="4rem" />
           );
           return (
             <li key={item.product_id} className="flex items-center gap-4 border-b py-3">

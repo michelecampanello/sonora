@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type TestAgent from "supertest/lib/agent.js";
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { pool } from "../../src/db.js";
 import { api, createProduct, signedInAgent } from "../helpers.js";
 
@@ -162,5 +162,98 @@ describe("GET e PUT /api/admin/products/:id", () => {
     await customer.post("/api/admin/products").send(input()).expect(403);
     await customer.put(`/api/admin/products/${randomUUID()}`).send(input()).expect(403);
     await api().post("/api/admin/products").send(input()).expect(401);
+  });
+});
+
+describe("foto caricate su Cloudinary", () => {
+  const CLOUD = "sonora-demo";
+  const photo = (publicId: string) => ({
+    url: `https://res.cloudinary.com/${CLOUD}/image/upload/v1731300000/${publicId}.jpg`,
+    alt: "",
+    public_id: publicId,
+  });
+
+  /** Le richieste fatte a Cloudinary: il finto fetch risponde sempre { result: "ok" } */
+  function mockCloudinary() {
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => Response.json({ result: "ok" }));
+    vi.stubGlobal("fetch", fetchMock);
+    return {
+      destroyed: () => fetchMock.mock.calls.map(([, init]) => new URLSearchParams(String(init?.body)).get("public_id")),
+    };
+  }
+
+  beforeEach(() => vi.stubEnv("CLOUDINARY_URL", `cloudinary://123456:segreto-xyz@${CLOUD}`));
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  it("salva il public_id e lo restituisce nel form", async () => {
+    const created = await admin.post("/api/admin/products").send(input({ images: [photo("p-salvata")] })).expect(201);
+    expect(created.body.images).toEqual([{ ...photo("p-salvata"), alt: null }]); // alt vuoto diventa null
+  });
+
+  it("togliendo una foto dal prodotto la cancella da Cloudinary", async () => {
+    const cloudinary = mockCloudinary();
+    const body = input({ images: [photo("p-resta"), photo("p-tolta"), { url: "/prodotti/a.svg", alt: "" }] });
+    const created = await admin.post("/api/admin/products").send(body).expect(201);
+
+    await admin
+      .put(`/api/admin/products/${created.body.id}`)
+      .send({ ...body, sku: created.body.sku, images: [photo("p-resta")] })
+      .expect(200);
+
+    await vi.waitFor(() => expect(cloudinary.destroyed()).toEqual(["p-tolta"]));
+  });
+
+  it("non cancella una foto che un altro prodotto usa ancora", async () => {
+    const cloudinary = mockCloudinary();
+    const shared = photo("p-condivisa");
+    await admin.post("/api/admin/products").send(input({ images: [shared] })).expect(201);
+    const second = await admin.post("/api/admin/products").send(input({ images: [shared] })).expect(201);
+
+    await admin.put(`/api/admin/products/${second.body.id}`).send(input({ sku: second.body.sku, images: [] })).expect(200);
+
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(cloudinary.destroyed()).toEqual([]);
+  });
+
+  it("non cancella nulla se il salvataggio fallisce", async () => {
+    const cloudinary = mockCloudinary();
+    const first = await admin.post("/api/admin/products").send(input()).expect(201);
+    const second = await admin.post("/api/admin/products").send(input({ images: [photo("p-intatta")] })).expect(201);
+
+    // Codice articolo già usato: la transazione viene annullata e la foto resta al prodotto
+    await admin.put(`/api/admin/products/${second.body.id}`).send(input({ sku: first.body.sku, images: [] })).expect(409);
+
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(cloudinary.destroyed()).toEqual([]);
+    const after = await admin.get(`/api/admin/products/${second.body.id}`).expect(200);
+    expect(after.body.images).toEqual([{ ...photo("p-intatta"), alt: null }]);
+  });
+
+  it("se Cloudinary non risponde il salvataggio riesce lo stesso", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => Promise.reject(new Error("rete giù"))));
+    const logError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const created = await admin.post("/api/admin/products").send(input({ images: [photo("p-irraggiungibile")] })).expect(201);
+
+    await admin.put(`/api/admin/products/${created.body.id}`).send(input({ sku: created.body.sku, images: [] })).expect(200);
+
+    await vi.waitFor(() => expect(logError).toHaveBeenCalled());
+    logError.mockRestore();
+  });
+
+  it.each([
+    ["un public_id che non corrisponde all'URL", { ...photo("p-vera"), public_id: "un-altra-foto" }],
+    ["una foto di un altro cloud", { url: "https://res.cloudinary.com/altro/image/upload/v1/p.jpg", alt: "", public_id: "p" }],
+    ["un public_id per un'immagine indicata con un indirizzo", { url: "/prodotti/a.svg", alt: "", public_id: "a" }],
+  ])("rifiuta %s", async (_case, image) => {
+    const res = await admin.post("/api/admin/products").send(input({ images: [image] })).expect(400);
+    expect(res.body.error).toMatch(/non corrisponde/);
+  });
+
+  it("senza CLOUDINARY_URL non accetta public_id", async () => {
+    vi.stubEnv("CLOUDINARY_URL", "");
+    await admin.post("/api/admin/products").send(input({ images: [photo("p-x")] })).expect(400);
   });
 });

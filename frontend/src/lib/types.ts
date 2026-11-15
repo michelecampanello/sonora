@@ -3,10 +3,14 @@
 
 export interface User {
   id: string;
-  name: string;
+  first_name: string;
+  last_name: string;
   email: string;
   role: "customer" | "admin";
 }
+
+/** Nome e cognome di un account, come li accetta il backend */
+export type PersonName = Pick<User, "first_name" | "last_name">;
 
 export interface AuthResponse {
   user: User;
@@ -47,25 +51,6 @@ export interface Address {
   is_default: boolean;
 }
 
-export const CARD_BRANDS = {
-  visa: "Visa",
-  mastercard: "Mastercard",
-  amex: "American Express",
-  altro: "Altro circuito",
-} as const;
-
-export type CardBrand = keyof typeof CARD_BRANDS;
-
-export interface PaymentMethod {
-  id: string;
-  brand: CardBrand;
-  last4: string;
-  holder: string;
-  exp_month: number;
-  exp_year: number;
-  is_default: boolean;
-}
-
 export interface Brand {
   id: string;
   slug: string;
@@ -77,6 +62,8 @@ export interface Category {
   name: string;
   slug: string;
   description: string | null;
+  /** Illustrazione su Cloudinary; null = nessuna */
+  image_url: string | null;
   children: Omit<Category, "children">[];
 }
 
@@ -92,6 +79,9 @@ export interface ProductSummary {
   brand_id: string;
   brand_slug: string;
   brand: string;
+  /** Media dei voti con un decimale, null se il prodotto non ha recensioni */
+  rating: number | null;
+  review_count: number;
 }
 
 export interface ProductSpec {
@@ -206,8 +196,34 @@ export interface AdminProductDetail extends AdminProduct {
   category_id: string;
   brand_id: string;
   specs: ProductSpec[];
-  images: { url: string; alt: string | null }[]; // la prima è la copertina
+  // La prima è la copertina. public_id solo per le foto caricate su Cloudinary dal pannello
+  images: { url: string; alt: string | null; public_id: string | null }[];
 }
 
 /** Quello che il form invia per creare o modificare un prodotto */
 export type ProductInput = Omit<AdminProductDetail, "id" | "slug" | "brand" | "category">;
+
+export interface Review {
+  id: string;
+  rating: number;
+  comment: string;
+  /** Nome e iniziale del cognome, es. "Giulia B." */
+  author: string;
+  /** Chi l'ha scritta ha comprato il prodotto */
+  verified: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReviewSummary {
+  average: number | null;
+  count: number;
+  /** Recensioni per voto: indice 0 = 1 stella, indice 4 = 5 stelle */
+  distribution: [number, number, number, number, number];
+}
+
+export interface ReviewsResponse extends Paginated<Review> {
+  summary: ReviewSummary;
+  /** La recensione di chi sta guardando, se ne ha scritta una */
+  mine: Review | null;
+}

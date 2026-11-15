@@ -12,6 +12,10 @@ import ordersRouter from "./routes/orders.js";
 
 const app = express();
 
+// Su Vercel le richieste arrivano da un proxy: l'IP vero del visitatore è nell'header X-Forwarded-For.
+// Senza, il limite ai tentativi vedrebbe un solo indirizzo per tutti.
+if (process.env.VERCEL) app.set("trust proxy", 1);
+
 // Permette al frontend di chiamare le API inviando il cookie di sessione: con i cookie
 // l'origine va indicata per esteso, non si può lasciare aperta a tutti.
 app.use(cors({ origin: FRONTEND_ORIGIN, credentials: true }));

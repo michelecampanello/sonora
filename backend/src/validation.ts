@@ -18,6 +18,22 @@ export const pageFrom = (value: unknown): number => {
 
 export const isPersonName = (value: string): boolean => value.length >= 2 && value.length <= 100;
 
+/** Nome o cognome di un account, da 1 a 50 caratteri ("Li" o "O" sono validi) */
+const isNamePart = (value: string): boolean => value.length >= 1 && value.length <= 50;
+
+export interface PersonName {
+  first_name: string;
+  last_name: string;
+}
+
+/** Legge nome e cognome di un account: restituisce i dati puliti, oppure il messaggio d'errore */
+export function parsePersonName(fields: Record<string, unknown>): PersonName | string {
+  const name = { first_name: text(fields.first_name), last_name: text(fields.last_name) };
+  if (!isNamePart(name.first_name)) return "Nome non valido";
+  if (!isNamePart(name.last_name)) return "Cognome non valido";
+  return name;
+}
+
 /** Il messaggio d'errore se la nuova password non è accettabile, altrimenti null */
 export function passwordError(password: string): string | null {
   if (password.length < MIN_PASSWORD_LENGTH) {

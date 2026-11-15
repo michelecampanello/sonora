@@ -17,7 +17,8 @@ const categories: Category[] = [
     name: "Bassi",
     slug: "bassi",
     description: null,
-    children: [{ id: BASS_ELECTRIC, name: "Bassi elettrici", slug: "bassi-elettrici", description: null }],
+    image_url: null,
+    children: [{ id: BASS_ELECTRIC, name: "Bassi elettrici", slug: "bassi-elettrici", description: null, image_url: null }],
   },
 ];
 const brands: Brand[] = [{ id: BRAND, slug: "nordwood", name: "Nordwood" }];
@@ -38,8 +39,8 @@ const product: AdminProductDetail = {
   brand_id: BRAND,
   specs: [{ label: "Corde", value: "5" }],
   images: [
-    { url: "/prodotti/fronte.svg", alt: "Fronte" },
-    { url: "/prodotti/retro.svg", alt: null },
+    { url: "/prodotti/fronte.svg", alt: "Fronte", public_id: null },
+    { url: "/prodotti/retro.svg", alt: null, public_id: null },
   ],
 };
 
@@ -51,7 +52,7 @@ const catalogRoutes = {
 const renderAdmin = (url: string) => renderPage(<AdminRoutes />, { path: "/admin/*", url });
 
 beforeEach(() =>
-  setUser({ id: "00000000-0000-4000-8000-0000000000ad", name: "Admin", email: "admin@example.com", role: "admin" }),
+  setUser({ id: "00000000-0000-4000-8000-0000000000ad", first_name: "Anna", last_name: "Admin", email: "admin@example.com", role: "admin" }),
 );
 afterEach(() => setUser(null));
 
@@ -143,8 +144,8 @@ describe("modifica prodotto", () => {
       price: "899.00",
       stock: 4,
       images: [
-        { url: "/prodotti/retro.svg", alt: "" },
-        { url: "/prodotti/fronte.svg", alt: "Fronte" },
+        { url: "/prodotti/retro.svg", alt: "", public_id: null },
+        { url: "/prodotti/fronte.svg", alt: "Fronte", public_id: null },
       ],
     });
     expect(await screen.findByRole("status")).toHaveTextContent("Modifiche salvate.");
@@ -171,6 +172,89 @@ describe("modifica prodotto", () => {
     mockApi({ ...catalogRoutes, [`GET /api/admin/products/${PRODUCT_ID}`]: { status: 404, body: { error: "Prodotto non trovato" } } });
     renderAdmin(`/admin/prodotti/${PRODUCT_ID}`);
     expect(await screen.findByText("Prodotto non trovato")).toBeInTheDocument();
+  });
+});
+
+describe("caricamento delle foto", () => {
+  const signature = {
+    uploadUrl: "https://api.cloudinary.com/v1_1/demo/image/upload",
+    fields: { allowed_formats: "jpg", asset_folder: "sonora/prodotti", timestamp: "1", api_key: "k", signature: "s" },
+  };
+
+  it("aggiunge in fondo le foto caricate e le salva con il prodotto", async () => {
+    let n = 0;
+    const fetchMock = mockApi({
+      ...catalogRoutes,
+      [`GET /api/admin/products/${PRODUCT_ID}`]: { body: product },
+      "POST /api/admin/uploads/signature": { body: signature },
+      "POST /v1_1/demo/image/upload": () => {
+        n += 1;
+        return { body: { secure_url: `https://res.cloudinary.com/demo/image/upload/v1/foto-${n}.jpg`, public_id: `foto-${n}` } };
+      },
+      [`PUT /api/admin/products/${PRODUCT_ID}`]: { body: product },
+    });
+    const { user } = renderAdmin(`/admin/prodotti/${PRODUCT_ID}`);
+
+    await user.upload(await screen.findByLabelText("Scegli le foto da caricare"), [
+      new File(["a"], "uno.jpg", { type: "image/jpeg" }),
+      new File(["b"], "due.png", { type: "image/png" }),
+    ]);
+
+    expect(await screen.findByLabelText("Indirizzo immagine 4")).toHaveValue("https://res.cloudinary.com/demo/image/upload/v1/foto-2.jpg");
+    expect(screen.getByLabelText("Indirizzo immagine 3")).toHaveValue("https://res.cloudinary.com/demo/image/upload/v1/foto-1.jpg");
+
+    await user.click(screen.getByRole("button", { name: "Salva modifiche" }));
+    const body = sentBody(fetchMock, `/api/admin/products/${PRODUCT_ID}`) as { images: { url: string; public_id: string | null }[] };
+    // Il public_id va con il prodotto: serve al backend per cancellare la foto quando viene tolta
+    expect(body.images.map((image) => [image.url, image.public_id])).toEqual([
+      ["/prodotti/fronte.svg", null],
+      ["/prodotti/retro.svg", null],
+      ["https://res.cloudinary.com/demo/image/upload/v1/foto-1.jpg", "foto-1"],
+      ["https://res.cloudinary.com/demo/image/upload/v1/foto-2.jpg", "foto-2"],
+    ]);
+  });
+
+  it("cambiando a mano l'indirizzo di una foto caricata, non la si cancella più da Cloudinary", async () => {
+    const uploaded = { url: "https://res.cloudinary.com/demo/image/upload/v1/foto.jpg", alt: null, public_id: "foto" };
+    const fetchMock = mockApi({
+      ...catalogRoutes,
+      [`GET /api/admin/products/${PRODUCT_ID}`]: { body: { ...product, images: [uploaded] } },
+      [`PUT /api/admin/products/${PRODUCT_ID}`]: { body: product },
+    });
+    const { user } = renderAdmin(`/admin/prodotti/${PRODUCT_ID}`);
+
+    const url = await screen.findByLabelText("Indirizzo immagine 1");
+    await user.clear(url);
+    await user.type(url, "/prodotti/altra.svg");
+    await user.click(screen.getByRole("button", { name: "Salva modifiche" }));
+
+    expect(sentBody(fetchMock, `/api/admin/products/${PRODUCT_ID}`)).toMatchObject({
+      images: [{ url: "/prodotti/altra.svg", public_id: null }],
+    });
+  });
+
+  it("mostra l'errore di una foto non caricata e tiene le altre", async () => {
+    let n = 0;
+    mockApi({
+      ...catalogRoutes,
+      [`GET /api/admin/products/${PRODUCT_ID}`]: { body: { ...product, images: [] } },
+      "POST /api/admin/uploads/signature": { body: signature },
+      "POST /v1_1/demo/image/upload": () =>
+        ++n === 1
+          ? { status: 400, body: { error: { message: "Invalid image file" } } }
+          : { body: { secure_url: "https://res.cloudinary.com/demo/image/upload/v1/ok.jpg", public_id: "ok" } },
+    });
+    const { user } = renderAdmin(`/admin/prodotti/${PRODUCT_ID}`);
+
+    await user.upload(await screen.findByLabelText("Scegli le foto da caricare"), [
+      new File(["a"], "rotta.jpg", { type: "image/jpeg" }),
+      new File(["b"], "buona.jpg", { type: "image/jpeg" }),
+    ]);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("rotta.jpg: caricamento non riuscito (Invalid image file)");
+    expect(await screen.findByLabelText("Indirizzo immagine 1")).toHaveValue("https://res.cloudinary.com/demo/image/upload/v1/ok.jpg");
+    expect(screen.queryByLabelText("Indirizzo immagine 2")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Carica foto" })).toBeEnabled();
   });
 });
 

@@ -1,5 +1,5 @@
 -- Schema del database. Si può rilanciare: elimina e ricrea le tabelle.
-DROP TABLE IF EXISTS password_reset_tokens, payment_methods, addresses, order_items, orders, users, product_images, product_specs, products, brands, categories CASCADE;
+DROP TABLE IF EXISTS reviews, password_reset_tokens, payment_methods, addresses, order_items, orders, users, product_images, product_specs, products, brands, categories CASCADE;
 
 CREATE EXTENSION IF NOT EXISTS pg_trgm;  -- ricerca tollerante agli errori di battitura
 
@@ -45,6 +45,7 @@ CREATE TABLE categories (
   slug        VARCHAR(100) NOT NULL UNIQUE,          -- usato negli URL, es. "chitarre-elettriche"
   description TEXT,
   sort_order  INTEGER NOT NULL DEFAULT 0,            -- ordine di visualizzazione tra categorie dello stesso livello
+  image_url   TEXT,                                   -- illustrazione della categoria, NULL = nessuna
   parent_id   UUID REFERENCES categories(id) ON DELETE CASCADE  -- NULL = categoria principale
 );
 
@@ -102,12 +103,19 @@ CREATE TABLE product_images (
   product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
   url        TEXT NOT NULL,
   alt        VARCHAR(200),                -- testo alternativo; se manca si usa il nome del prodotto
-  sort_order INTEGER NOT NULL DEFAULT 0   -- la prima immagine in ordine è la copertina
+  sort_order INTEGER NOT NULL DEFAULT 0,  -- la prima immagine in ordine è la copertina
+  -- public_id su Cloudinary per le foto caricate dal pannello: serve a cancellarle quando vengono tolte.
+  -- NULL per le immagini indicate con un indirizzo, che non si cancellano mai.
+  cloudinary_public_id VARCHAR(255)
 );
+
+CREATE INDEX idx_product_images_cloudinary ON product_images(cloudinary_public_id)
+  WHERE cloudinary_public_id IS NOT NULL;
 
 CREATE TABLE users (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name            VARCHAR(100) NOT NULL,
+  first_name      VARCHAR(50) NOT NULL,
+  last_name       VARCHAR(50) NOT NULL,
   email           VARCHAR(255) NOT NULL UNIQUE,
   password_hash   TEXT NOT NULL,
   role            VARCHAR(20) NOT NULL DEFAULT 'customer' CHECK (role IN ('customer', 'admin')),
@@ -135,24 +143,9 @@ CREATE TABLE addresses (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Solo i dati mostrabili: il numero completo della carta e il CVV non devono mai arrivare qui.
-CREATE TABLE payment_methods (
-  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  brand      VARCHAR(20) NOT NULL CHECK (brand IN ('visa', 'mastercard', 'amex', 'altro')),
-  last4      CHAR(4) NOT NULL CHECK (last4 ~ '^[0-9]{4}$'),
-  holder     VARCHAR(100) NOT NULL,
-  exp_month  SMALLINT NOT NULL CHECK (exp_month BETWEEN 1 AND 12),
-  exp_year   SMALLINT NOT NULL,
-  is_default BOOLEAN NOT NULL DEFAULT false,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
--- Al massimo un elemento predefinito per utente
+-- Al massimo un indirizzo predefinito per utente
 CREATE UNIQUE INDEX idx_addresses_one_default ON addresses(user_id) WHERE is_default;
-CREATE UNIQUE INDEX idx_payment_methods_one_default ON payment_methods(user_id) WHERE is_default;
 CREATE INDEX idx_addresses_user ON addresses(user_id);
-CREATE INDEX idx_payment_methods_user ON payment_methods(user_id);
 
 CREATE TABLE orders (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -186,3 +179,17 @@ CREATE INDEX idx_product_images_product ON product_images(product_id, sort_order
 CREATE INDEX idx_orders_user ON orders(user_id, created_at DESC);
 CREATE INDEX idx_products_search   ON products
   USING gin (name gin_trgm_ops, description gin_trgm_ops, sku gin_trgm_ops);
+
+-- Recensioni dei clienti: voto da 1 a 5 e un commento facoltativo
+CREATE TABLE reviews (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  rating     SMALLINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+  comment    TEXT NOT NULL DEFAULT '' CHECK (length(comment) <= 2000),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (product_id, user_id)  -- una recensione per persona e prodotto: si modifica, non se ne aggiunge un'altra
+);
+
+CREATE INDEX idx_reviews_product ON reviews(product_id, created_at DESC);

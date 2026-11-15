@@ -1,4 +1,5 @@
 import type { CookieOptions, Request, Response } from "express";
+import { runAfterResponse } from "../background.js";
 import { asyncHandler } from "../asyncHandler.js";
 import { isEmail } from "../email.js";
 import { SESSION_COOKIE } from "../middleware/auth.middleware.js";
@@ -9,8 +10,9 @@ import {
   SESSION_MAX_AGE_MS,
   verifyCredentials,
 } from "../services/auth.service.js";
-import { asRecord, isPersonName, passwordError, text } from "../validation.js";
+import { asRecord, parsePersonName, passwordError, text } from "../validation.js";
 import { requestPasswordReset, resetPassword as applyPasswordReset } from "../services/passwordReset.service.js";
+import { sendWelcomeEmail } from "../services/mail.service.js";
 import type { ApiError, AuthResponse, User } from "../types.js";
 
 // httpOnly: il token non è leggibile da JavaScript. sameSite: un altro sito non può usare la sessione.
@@ -28,11 +30,11 @@ export async function startSession(res: Response<any>, user: User) {
 /** POST /api/auth/register — crea un account e avvia la sessione */
 export const register = asyncHandler<{}, AuthResponse | ApiError, unknown, unknown>(async (req, res) => {
   const fields = asRecord(req.body);
-  const name = text(fields.name);
+  const name = parsePersonName(fields);
   const email = text(fields.email).toLowerCase();
   const password = typeof fields.password === "string" ? fields.password : "";
 
-  if (!isPersonName(name)) return res.status(400).json({ error: "Nome non valido" });
+  if (typeof name === "string") return res.status(400).json({ error: name });
   if (!isEmail(email)) return res.status(400).json({ error: "Email non valida" });
   const invalidPassword = passwordError(password);
   if (invalidPassword) return res.status(400).json({ error: invalidPassword });
@@ -40,7 +42,10 @@ export const register = asyncHandler<{}, AuthResponse | ApiError, unknown, unkno
   try {
     const user = await registerUser(name, email, password);
     await startSession(res, user);
-    return res.status(201).json({ user });
+    res.status(201).json({ user });
+    // Dopo la risposta: l'account esiste comunque, anche se l'email non parte
+    runAfterResponse(sendWelcomeEmail(user.email, user.first_name));
+    return undefined;
   } catch (err) {
     if (err instanceof EmailTakenError) {
       return res.status(409).json({ error: "Esiste già un account con questa email" });
@@ -71,7 +76,7 @@ export const forgotPassword = asyncHandler<{}, { status: string } | ApiError, un
 
   // Si risponde prima di lavorare: nemmeno i tempi di risposta rivelano se l'email è registrata
   res.json({ status: "ok" });
-  requestPasswordReset(email).catch((err: unknown) => console.error(err));
+  runAfterResponse(requestPasswordReset(email));
   return undefined;
 });
 

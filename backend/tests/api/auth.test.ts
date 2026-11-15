@@ -18,10 +18,10 @@ describe("POST /api/auth/register", () => {
     const email = uniqueEmail();
     const res = await api()
       .post("/api/auth/register")
-      .send({ name: "Giulia Bianchi", email: email.toUpperCase(), password: "password-sicura" })
+      .send({ first_name: " Giulia ", last_name: "Bianchi", email: email.toUpperCase(), password: "password-sicura" })
       .expect(201);
 
-    expect(res.body.user).toMatchObject({ name: "Giulia Bianchi", email, role: "customer" });
+    expect(res.body.user).toMatchObject({ first_name: "Giulia", last_name: "Bianchi", email, role: "customer" });
     expect(JSON.stringify(res.body)).not.toMatch(/password/);
     expect(sessionCookie(res)).toMatch(/HttpOnly/i);
     expect(sessionCookie(res)).toMatch(/SameSite=Lax/i);
@@ -31,15 +31,19 @@ describe("POST /api/auth/register", () => {
     const user = await createUser();
     await api()
       .post("/api/auth/register")
-      .send({ name: "Altro Utente", email: user.email, password: "password-sicura" })
+      .send({ first_name: "Altro", last_name: "Utente", email: user.email, password: "password-sicura" })
       .expect(409);
   });
 
   it.each([
-    [{ name: "A", email: "a@example.com", password: "password-sicura" }, "Nome non valido"],
-    [{ name: "Anna", email: "non-email", password: "password-sicura" }, "Email non valida"],
-    [{ name: "Anna", email: "a@example.com", password: "corta" }, "La password deve avere almeno 8 caratteri"],
-    [{ name: "Anna", email: "a@example.com", password: 12345678 }, "La password deve avere almeno 8 caratteri"],
+    [{ first_name: " ", last_name: "Bianchi", email: "a@example.com", password: "password-sicura" }, "Nome non valido"],
+    [{ first_name: "Anna", email: "a@example.com", password: "password-sicura" }, "Cognome non valido"],
+    [{ first_name: "Anna", last_name: "B".repeat(51), email: "a@example.com", password: "password-sicura" }, "Cognome non valido"],
+    // Il vecchio campo unico non basta più
+    [{ name: "Anna Bianchi", email: "a@example.com", password: "password-sicura" }, "Nome non valido"],
+    [{ first_name: "Anna", last_name: "Bianchi", email: "non-email", password: "password-sicura" }, "Email non valida"],
+    [{ first_name: "Anna", last_name: "Bianchi", email: "a@example.com", password: "corta" }, "La password deve avere almeno 8 caratteri"],
+    [{ first_name: "Anna", last_name: "Bianchi", email: "a@example.com", password: 12345678 }, "La password deve avere almeno 8 caratteri"],
   ])("rifiuta dati non validi: %j", async (body, error) => {
     const res = await api().post("/api/auth/register").send(body).expect(400);
     expect(res.body.error).toBe(error);

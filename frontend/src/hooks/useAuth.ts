@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { currentUserPath, fetchJson, loginPath, logoutPath, postJson, registerPath } from "@/lib/api";
-import type { AuthResponse, User } from "@/lib/types";
+import type { AuthResponse, PersonName, User } from "@/lib/types";
 
 interface AuthState {
   user: User | null;
@@ -32,8 +32,8 @@ export async function login(email: string, password: string) {
   setUser(user);
 }
 
-export async function register(name: string, email: string, password: string) {
-  const { user } = await postJson<AuthResponse>(registerPath, { name, email, password });
+export async function register(name: PersonName, email: string, password: string) {
+  const { user } = await postJson<AuthResponse>(registerPath, { ...name, email, password });
   setUser(user);
 }
 

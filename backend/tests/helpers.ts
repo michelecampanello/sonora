@@ -20,8 +20,8 @@ export const uniqueEmail = () => `utente-${randomUUID()}@example.com`;
 export async function createUser(password = DEFAULT_PASSWORD, role: "customer" | "admin" = "customer") {
   const email = uniqueEmail();
   const { rows } = await pool.query<{ id: string }>(
-    "INSERT INTO users (name, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id",
-    ["Utente di Prova", email, await bcrypt.hash(password, 4), role],
+    "INSERT INTO users (first_name, last_name, email, password_hash, role) VALUES ($1, $2, $3, $4, $5) RETURNING id",
+    ["Utente", "di Prova", email, await bcrypt.hash(password, 4), role],
   );
   return { id: rows[0]!.id, email, password };
 }

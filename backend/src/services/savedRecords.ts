@@ -1,9 +1,9 @@
-// Regole comuni a indirizzi e metodi di pagamento: un limite per utente e un solo elemento predefinito.
+// Regole per gli indirizzi salvati: un limite per utente e un solo indirizzo predefinito.
 import type { PoolClient } from "pg";
 import { pool } from "../db.js";
 
 /** I nomi vengono inseriti nelle query: devono restare costanti scritte nel codice */
-type RecordTable = "addresses" | "payment_methods";
+type RecordTable = "addresses";
 
 const MAX_RECORDS_PER_USER = 10;
 

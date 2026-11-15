@@ -5,7 +5,7 @@ import { LoginPage } from "@/pages/LoginPage";
 import { mockApi, sentBody } from "@/test/mockApi";
 import { renderPage } from "@/test/render";
 
-const user = { id: "00000000-0000-4000-8000-000000000001", name: "Giulia", email: "giulia@example.com", role: "customer" as const };
+const user = { id: "00000000-0000-4000-8000-000000000001", first_name: "Giulia", last_name: "Bianchi", email: "giulia@example.com", role: "customer" as const };
 
 // Lo stato dell'accesso vive fuori da React: dopo ogni test si torna a "nessuno collegato"
 afterEach(() => setUser(null));

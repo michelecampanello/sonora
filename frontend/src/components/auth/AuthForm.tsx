@@ -2,6 +2,7 @@ import { useState, type FormEvent, type ReactNode } from "react";
 import { Link, Navigate, useLocation } from "react-router";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { PageMeta } from "@/components/PageMeta";
 
 interface AuthFormProps {
   title: string;
@@ -43,7 +44,7 @@ export function AuthForm({ title, submitLabel, switchText, switchLabel, switchTo
 
   return (
     <div className="mx-auto flex w-full max-w-md flex-col gap-6">
-      <title>{`${title} — Sonora`}</title>
+      <PageMeta title={title} noindex />
       <h1 className="text-display text-6xl md:text-8xl">{title}</h1>
 
       {notice && (

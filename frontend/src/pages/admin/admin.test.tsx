@@ -7,8 +7,8 @@ import { mockApi, sentBody } from "@/test/mockApi";
 import { renderPage } from "@/test/render";
 import type { AdminOrderDetail, AdminProduct, User } from "@/lib/types";
 
-const admin: User = { id: "00000000-0000-4000-8000-0000000000ad", name: "Admin", email: "admin@example.com", role: "admin" };
-const customer: User = { ...admin, role: "customer", name: "Cliente" };
+const admin: User = { id: "00000000-0000-4000-8000-0000000000ad", first_name: "Anna", last_name: "Admin", email: "admin@example.com", role: "admin" };
+const customer: User = { ...admin, role: "customer", first_name: "Carlo", last_name: "Cliente" };
 const ORDER_ID = "3f2a9c1e-7a8d-4b5e-9f3a-2c1d0e9f8a7b";
 
 const renderAdmin = (url: string) => renderPage(<AdminRoutes />, { path: "/admin/*", url });

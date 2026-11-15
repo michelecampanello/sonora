@@ -15,6 +15,7 @@ export default defineConfig({
       FRONTEND_ORIGIN: "http://localhost:5173",
       RESEND_API_KEY: "", // le email non partono mai: i test che le controllano usano un finto Resend
       MAIL_FROM: "",
+      CLOUDINARY_URL: "", // i test che la usano la impostano da soli
     },
   },
 });

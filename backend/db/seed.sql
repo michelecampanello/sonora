@@ -1,11 +1,16 @@
 -- Dati di prova. Marche e prodotti sono inventati.
--- Le immagini sono illustrazioni vettoriali in frontend/public/prodotti, una per prodotto: <slug>.svg
+-- Ogni prodotto e ogni categoria ha un'illustrazione su Cloudinary (vedi seed_image qui sotto)
 
 -- Le righe qui sotto usano numeri semplici per collegarsi tra loro: seed_id li trasforma
 -- in UUID sempre uguali, così i carrelli salvati nel browser restano validi rilanciando il seed.
 -- Gli slug di prodotti e marche li genera il database a partire dal nome (vedi set_slug in schema.sql).
 CREATE FUNCTION pg_temp.seed_id(kind text, n integer) RETURNS uuid
   LANGUAGE sql IMMUTABLE AS $$ SELECT md5(kind || ':' || n)::uuid $$;
+
+-- Le illustrazioni sono PNG su Cloudinary, caricati con `npm run upload-images` nella cartella sonora/seed:
+-- ogni immagine ha come nome lo slug del prodotto o della categoria.
+CREATE FUNCTION pg_temp.seed_image(folder text, slug text) RETURNS text
+  LANGUAGE sql IMMUTABLE AS $$ SELECT 'https://res.cloudinary.com/bw6lt8wj/image/upload/sonora/seed/' || folder || '/' || slug || '.png' $$;
 
 INSERT INTO categories (id, name, slug, parent_id)
 SELECT pg_temp.seed_id('category', id), name, slug, pg_temp.seed_id('category', parent_id)
@@ -311,5 +316,101 @@ FROM (VALUES
 
 -- Una copertina per ogni prodotto
 INSERT INTO product_images (product_id, url, alt, sort_order)
-SELECT id, '/prodotti/' || slug || '.svg', 'Illustrazione di ' || name, 0
+SELECT id, pg_temp.seed_image('prodotti', slug), 'Illustrazione di ' || name, 0
 FROM products;
+
+-- E un'illustrazione per ogni categoria
+UPDATE categories SET image_url = pg_temp.seed_image('categorie', slug);
+-- Clienti di esempio, autori delle recensioni qui sotto.
+-- Non possono accedere: l'hash è quello di una password casuale che non è mai stata salvata da nessuna parte.
+INSERT INTO users (id, first_name, last_name, email, password_hash)
+SELECT pg_temp.seed_id('user', id), first_name, last_name, email, '$2b$10$k0wsScbrkUlKNc.1MOY81.1tbTD9kNnU4dB0HrOUfhM1sK/BkEuoy'
+FROM (VALUES
+  (1, 'Giulia',   'Bianchi',  'giulia.bianchi@example.com'),
+  (2, 'Marco',    'Ricci',    'marco.ricci@example.com'),
+  (3, 'Sara',     'Tedeschi', 'sara.tedeschi@example.com'),
+  (4, 'Luca',     'Pellegrini', 'luca.pellegrini@example.com'),
+  (5, 'Chiara',   'Esposito', 'chiara.esposito@example.com'),
+  (6, 'Davide',   'Fontana',  'davide.fontana@example.com'),
+  (7, 'Elena',    'Moretti',  'elena.moretti@example.com'),
+  (8, 'Francesco', 'Galli',   'francesco.galli@example.com')
+) AS v(id, first_name, last_name, email);
+
+-- Alcuni acquisti già pagati, uno per ordine: chi recensisce un prodotto che ha comprato ha il badge "Acquisto verificato"
+CREATE TEMP TABLE seed_purchases (id integer, user_id integer, product_id integer, days integer, address text, city text, postal_code text, province text);
+INSERT INTO seed_purchases VALUES
+  (1, 1, 1,  60, 'Via Roma 12',           'Milano',  '20121', 'MI'),
+  (2, 2, 8,  55, 'Corso Vittorio Emanuele 40', 'Torino', '10123', 'TO'),
+  (3, 3, 13, 50, 'Via dei Mille 8',       'Napoli',  '80121', 'NA'),
+  (4, 4, 11, 45, 'Via Indipendenza 21',   'Bologna', '40121', 'BO'),
+  (5, 5, 16, 40, 'Via Garibaldi 3',       'Genova',  '16124', 'GE'),
+  (6, 6, 57, 38, 'Piazza delle Erbe 5',   'Verona',  '37121', 'VR'),
+  (7, 7, 87, 35, 'Via Etnea 102',         'Catania', '95124', 'CT'),
+  (8, 2, 15, 30, 'Corso Vittorio Emanuele 40', 'Torino', '10123', 'TO'),
+  (9, 8, 4,  28, 'Via Toledo 77',         'Napoli',  '80134', 'NA');
+
+INSERT INTO orders (id, user_id, total, status, customer_name, customer_email, address, city, postal_code, province, created_at)
+SELECT pg_temp.seed_id('order', s.id), u.id, p.price, 'paid', u.first_name || ' ' || u.last_name, u.email,
+       s.address, s.city, s.postal_code, s.province, now() - s.days * interval '1 day'
+FROM seed_purchases s
+JOIN users u ON u.id = pg_temp.seed_id('user', s.user_id)
+JOIN products p ON p.id = pg_temp.seed_id('product', s.product_id);
+
+INSERT INTO order_items (order_id, product_id, quantity, unit_price)
+SELECT pg_temp.seed_id('order', s.id), p.id, 1, p.price
+FROM seed_purchases s
+JOIN products p ON p.id = pg_temp.seed_id('product', s.product_id);
+
+DROP TABLE seed_purchases;
+
+-- Recensioni: soprattutto sui prodotti in evidenza, con voti vari e qualche commento lasciato vuoto
+INSERT INTO reviews (product_id, user_id, rating, comment, created_at, updated_at)
+SELECT pg_temp.seed_id('product', product_id), pg_temp.seed_id('user', user_id), rating, comment,
+       now() - days * interval '1 day', now() - days * interval '1 day'
+FROM (VALUES
+  -- Nordwood ST-1 Sunburst
+  (1, 1, 5, 'Arrivata già regolata e con le corde nuove. Il suono pulito in posizione 4 è proprio quello che cercavo per il funk.', 50),
+  (1, 3, 4, 'Ottima per iniziare e anche oltre. Il tremolo scorda un po'' se lo usi tanto, ma per il prezzo non mi lamento.', 33),
+  (1, 6, 5, '', 20),
+  (1, 8, 4, 'Manico comodo e finitura curata. Ho cambiato solo i pickup del ponte per avere più spinta.', 9),
+  -- Stradivolt Thunder 4
+  (8, 2, 5, 'Basso solidissimo: bassi pieni e un medio che si sente bene nel mix della band. Leggero per essere un quattro corde.', 44),
+  (8, 4, 4, 'Buono, ma la custodia non è inclusa. Il suono invece è da strumento di fascia più alta.', 26),
+  (8, 7, 3, 'Suona bene, però un tasto ronzava. Con una regolazione del truss rod si è sistemato.', 12),
+  -- Kestrel Practice E-Kit
+  (11, 4, 5, 'Perfetta per suonare in appartamento: i vicini non hanno più bussato. I pad sono silenziosi e rispondono bene.', 40),
+  (11, 5, 4, 'Montaggio semplice, mezz''ora. Il pedale della cassa è un po'' leggero, lo cambierò.', 22),
+  (11, 1, 5, 'Regalo per mio figlio di 12 anni: la usa tutti i giorni con le basi del modulo.', 7),
+  -- Aurora DP-88
+  (13, 3, 5, 'La tastiera pesata è molto realistica e i suoni di pianoforte sono ricchi. Uso le cuffie la sera e funziona tutto benissimo.', 45),
+  (13, 7, 5, 'Dopo anni di acustico avevo paura di perdere il tocco, invece è stato un passaggio naturale.', 30),
+  (13, 2, 4, 'Ottimo pianoforte digitale. Gli altoparlanti integrati sono un po'' deboli per una sala grande.', 15),
+  (13, 6, 2, 'Il suono è bello, ma a me è arrivato con un tasto più rumoroso degli altri. L''assistenza però mi ha risposto in fretta.', 4),
+  -- Pulse Wave Synth 37
+  (15, 2, 5, 'Piccolo ma potente: i filtri suonano grassi e il sequencer è immediato. Ci ho fatto già tre pezzi.', 25),
+  (15, 8, 4, 'Divertentissimo. Il manuale è scritto un po'' male, ma ci sono tanti video online.', 11),
+  -- Pulse Duo USB
+  (16, 5, 5, 'Collegata al portatile e riconosciuta subito, senza installare nulla. Preamplificatori puliti e silenziosi.', 35),
+  (16, 1, 4, 'Fa esattamente quello che deve. Avrei voluto una manopola del volume cuffie più grande.', 18),
+  (16, 4, 5, '', 6),
+  -- Stradivolt Inferno 50 Tube
+  (57, 6, 5, 'Il crunch del canale due è magnifico, valvolare vero. Pesante da portare in giro, ma ne vale la pena.', 30),
+  (57, 3, 4, 'Suono caldissimo. Il riverbero integrato è un po'' scarso, uso un pedale a parte.', 14),
+  -- Orfeo Riverbero Hall
+  (87, 7, 5, 'Code lunghissime e naturali, sembra di suonare in una chiesa. Il pedale migliore che abbia comprato quest''anno.', 28),
+  (87, 5, 5, 'Silenzioso anche con la manopola al massimo. Sta sempre acceso sulla mia pedaliera.', 10),
+  (87, 8, 3, 'Bello ma molto simile ad altri riverberi che costano meno.', 3),
+  -- Nordwood D-20 Natural
+  (4, 8, 5, 'Bassi profondi e volume notevole. Dopo qualche settimana il top in abete si è aperto e suona ancora meglio.', 20),
+  (4, 2, 4, 'Ottima acustica, l''action di fabbrica era un po'' alta.', 8),
+  -- Nordwood PB Vintage
+  (9, 6, 5, 'Il classico suono da Motown, rotondo e caldo. Con le flat wound è perfetto.', 17),
+  -- Pulse Studio Condenser C1
+  (17, 5, 4, 'Registra la voce in modo chiaro e dettagliato. Serve un ambiente trattato, perché sente anche la stanza.', 21),
+  (17, 3, 5, '', 13),
+  -- Pulse Monitor H50
+  (19, 1, 4, 'Cuffie chiuse comode anche dopo ore. Isolano bene, ottime per registrare.', 16),
+  -- Stradivolt Fuzz Storm
+  (88, 4, 5, 'Fuzz enorme e sporco, proprio quello che volevo per lo stoner. Le manopole hanno un''escursione utile.', 5),
+  (88, 7, 2, 'Troppo estremo per i miei gusti: anche al minimo è molto saturo.', 2)
+) AS v(product_id, user_id, rating, comment, days);

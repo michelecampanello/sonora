@@ -5,6 +5,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatPrice } from "@/lib/format";
 import type { OrderConfirmation } from "@/lib/types";
+import { PageMeta } from "@/components/PageMeta";
 
 export function OrderConfirmedPage() {
   // L'ordine arriva dal checkout tramite lo stato della navigazione: senza login
@@ -18,7 +19,7 @@ export function OrderConfirmedPage() {
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
-      <title>Ordine confermato — Sonora</title>
+      <PageMeta title="Ordine confermato" noindex />
 
       <div className="flex flex-col items-center gap-3 text-center">
         <CheckCircle2 className="size-10 text-primary" strokeWidth={1.5} aria-hidden />

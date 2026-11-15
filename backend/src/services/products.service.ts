@@ -40,7 +40,9 @@ const PRODUCT_COLUMNS = `
    WHERE i.product_id = p.id
    ORDER BY i.sort_order, i.id LIMIT 1) AS image_url,
   c.name AS category, c.slug AS category_slug,
-  b.id AS brand_id, b.slug AS brand_slug, b.name AS brand`;
+  b.id AS brand_id, b.slug AS brand_slug, b.name AS brand,
+  (SELECT round(avg(r.rating), 1)::float FROM reviews r WHERE r.product_id = p.id) AS rating,
+  (SELECT count(*)::int FROM reviews r WHERE r.product_id = p.id) AS review_count`;
 
 const PRODUCT_JOINS = `
   FROM products p

@@ -1,110 +1,213 @@
-import { useState, type FormEvent } from "react";
-import { AccountSection, FormError } from "@/components/account/AccountParts";
-import { FormField } from "@/components/FormField";
-import { Button } from "@/components/ui/button";
-import { setUser, useAuth } from "@/hooks/useAuth";
-import { passwordPath, profilePath, sendJson } from "@/lib/api";
-import type { AuthResponse } from "@/lib/types";
+import { useState, type SubmitEvent } from "react"
+import { AccountSection, FormError } from "@/components/account/AccountParts"
+import { FormField } from "@/components/FormField"
+import { type Theme, useTheme } from "@/components/theme-provider"
+import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { setUser, useAuth } from "@/hooks/useAuth"
+import { passwordPath, profilePath, sendJson } from "@/lib/api"
+import type { AuthResponse } from "@/lib/types"
 
 /** Stato di un modulo: errore da mostrare, conferma e invio in corso */
 function useFormStatus() {
-  const [error, setError] = useState<string>();
-  const [saved, setSaved] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string>()
+  const [saved, setSaved] = useState(false)
+  const [busy, setBusy] = useState(false)
 
   const submit = async (action: () => Promise<void>) => {
-    setBusy(true);
-    setError(undefined);
-    setSaved(false);
+    setBusy(true)
+    setError(undefined)
+    setSaved(false)
     try {
-      await action();
-      setSaved(true);
+      await action()
+      setSaved(true)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Errore imprevisto");
+      setError(err instanceof Error ? err.message : "Errore imprevisto")
     } finally {
-      setBusy(false);
+      setBusy(false)
     }
-  };
+  }
 
-  return { error, setError, saved, busy, submit };
+  return { error, setError, saved, busy, submit }
 }
 
 const SavedNote = ({ text }: { text: string }) => (
   <p role="status" className="text-sm text-muted-foreground">
     {text}
   </p>
-);
+)
 
 function ProfileForm() {
-  const { user } = useAuth();
-  const { error, saved, busy, submit } = useFormStatus();
-  if (!user) return null;
+  const { user } = useAuth()
+  const { error, saved, busy, submit } = useFormStatus()
+  if (!user) return null
 
-  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const form = event.currentTarget;
-    const data = new FormData(form);
+  const onSubmit = (event: SubmitEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const form = event.currentTarget
+    const data = new FormData(form)
     void submit(async () => {
       const response = await sendJson<AuthResponse>("PATCH", profilePath, {
-        name: String(data.get("name") ?? ""),
+        first_name: String(data.get("first_name") ?? ""),
+        last_name: String(data.get("last_name") ?? ""),
         email: String(data.get("email") ?? ""),
         currentPassword: String(data.get("profilePassword") ?? ""),
-      });
-      setUser(response.user);
-      form.reset();
-    });
-  };
+      })
+      setUser(response.user)
+      form.reset()
+    })
+  }
 
   return (
     <form onSubmit={onSubmit} className="flex max-w-md flex-col gap-4">
-      <h2 className="text-display border-t pt-3 text-3xl">Dati personali</h2>
+      <h2 className="border-t pt-3 text-display text-3xl">Dati personali</h2>
       {/* key: dopo il salvataggio i campi ripartono dai valori aggiornati */}
-      <FormField key={`name-${user.name}`} label="Nome e cognome" name="name" autoComplete="name" minLength={2} maxLength={100} defaultValue={user.name} />
-      <FormField key={`email-${user.email}`} label="Email" name="email" type="email" autoComplete="email" maxLength={255} defaultValue={user.email} />
-      <FormField label="Password attuale (solo per cambiare email)" name="profilePassword" type="password" autoComplete="current-password" required={false} />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FormField
+          key={`first-${user.first_name}`}
+          label="Nome"
+          name="first_name"
+          autoComplete="given-name"
+          maxLength={50}
+          defaultValue={user.first_name}
+        />
+        <FormField
+          key={`last-${user.last_name}`}
+          label="Cognome"
+          name="last_name"
+          autoComplete="family-name"
+          maxLength={50}
+          defaultValue={user.last_name}
+        />
+      </div>
+      <FormField
+        key={`email-${user.email}`}
+        label="Email"
+        name="email"
+        type="email"
+        autoComplete="email"
+        maxLength={255}
+        defaultValue={user.email}
+      />
+      <FormField
+        label="Password attuale (solo per cambiare email)"
+        name="profilePassword"
+        type="password"
+        autoComplete="current-password"
+        required={false}
+      />
       <FormError message={error} />
       {saved && <SavedNote text="Dati aggiornati." />}
       <Button type="submit" className="self-start" disabled={busy}>
         Salva dati
       </Button>
     </form>
-  );
+  )
 }
 
 function PasswordForm() {
-  const { error, setError, saved, busy, submit } = useFormStatus();
+  const { error, setError, saved, busy, submit } = useFormStatus()
 
-  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const form = event.currentTarget;
-    const data = new FormData(form);
-    const newPassword = String(data.get("newPassword") ?? "");
+  const onSubmit = (event: SubmitEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const form = event.currentTarget
+    const data = new FormData(form)
+    const newPassword = String(data.get("newPassword") ?? "")
     if (newPassword !== String(data.get("confirmPassword") ?? "")) {
-      setError("Le due password non coincidono");
-      return;
+      setError("Le due password non coincidono")
+      return
     }
     void submit(async () => {
       await sendJson<AuthResponse>("PUT", passwordPath, {
         currentPassword: String(data.get("currentPassword") ?? ""),
         newPassword,
-      });
-      form.reset();
-    });
-  };
+      })
+      form.reset()
+    })
+  }
 
   return (
     <form onSubmit={onSubmit} className="flex max-w-md flex-col gap-4">
-      <h2 className="text-display border-t pt-3 text-3xl">Password</h2>
-      <FormField label="Password attuale" name="currentPassword" type="password" autoComplete="current-password" />
-      <FormField label="Nuova password" name="newPassword" type="password" autoComplete="new-password" minLength={8} maxLength={72} title="Almeno 8 caratteri" />
-      <FormField label="Ripeti la nuova password" name="confirmPassword" type="password" autoComplete="new-password" minLength={8} maxLength={72} />
+      <h2 className="border-t pt-3 text-display text-3xl">Password</h2>
+      <FormField
+        label="Password attuale"
+        name="currentPassword"
+        type="password"
+        autoComplete="current-password"
+      />
+      <FormField
+        label="Nuova password"
+        name="newPassword"
+        type="password"
+        autoComplete="new-password"
+        minLength={8}
+        maxLength={72}
+        title="Almeno 8 caratteri"
+      />
+      <FormField
+        label="Ripeti la nuova password"
+        name="confirmPassword"
+        type="password"
+        autoComplete="new-password"
+        minLength={8}
+        maxLength={72}
+      />
       <FormError message={error} />
-      {saved && <SavedNote text="Password cambiata. Le altre sessioni aperte sono state chiuse." />}
+      {saved && (
+        <SavedNote text="Password cambiata. Le altre sessioni aperte sono state chiuse." />
+      )}
       <Button type="submit" className="self-start" disabled={busy}>
         Cambia password
       </Button>
     </form>
-  );
+  )
+}
+
+const THEME_OPTIONS: { value: Theme; label: string; hint: string }[] = [
+  { value: "light", label: "Chiaro", hint: "Fondo nichel, testo palissandro" },
+  {
+    value: "dark",
+    label: "Scuro",
+    hint: "Il palco: fondo petrolio quasi nero",
+  },
+  {
+    value: "system",
+    label: "Come il dispositivo",
+    hint: "Segue l'impostazione del sistema operativo",
+  },
+]
+
+/** Scelta del tema: vale subito e resta salvata in questo browser */
+function AppearanceForm() {
+  const { theme, setTheme } = useTheme()
+
+  return (
+    <section
+      className="flex max-w-md flex-col gap-4"
+      aria-labelledby="appearance-title"
+    >
+      <h2 id="appearance-title" className="border-t pt-3 text-display text-3xl">
+        Aspetto
+      </h2>
+      <RadioGroup
+        aria-labelledby="appearance-title"
+        value={theme}
+        onValueChange={(value) => setTheme(value as Theme)}
+        className="gap-3"
+      >
+        {THEME_OPTIONS.map((option) => (
+          <Label key={option.value} className="items-start gap-3 font-normal">
+            <RadioGroupItem value={option.value} className="mt-0.5" />
+            <span className="flex flex-col gap-1">
+              <span className="font-medium">{option.label}</span>
+              <span className="text-muted-foreground">{option.hint}</span>
+            </span>
+          </Label>
+        ))}
+      </RadioGroup>
+    </section>
+  )
 }
 
 export function SettingsPage() {
@@ -113,7 +216,8 @@ export function SettingsPage() {
       <div className="flex flex-col gap-10">
         <ProfileForm />
         <PasswordForm />
+        <AppearanceForm />
       </div>
     </AccountSection>
-  );
+  )
 }

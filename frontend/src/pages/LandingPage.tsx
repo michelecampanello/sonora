@@ -1,24 +1,33 @@
-import { Link } from "react-router";
-import { ArrowRight } from "lucide-react";
-import { buttonVariants } from "@/components/ui/button";
-import { CategoryGrid, CategoryGridSkeleton } from "@/components/catalog/CategoryGrid";
-import { ProductGrid, ProductGridSkeleton } from "@/components/catalog/ProductGrid";
-import { HeroWaveform } from "@/components/layout/HeroWaveform";
-import { useFetch } from "@/hooks/useFetch";
-import { categoriesPath, featuredProductsPath } from "@/lib/api";
-import type { Category, Paginated, ProductSummary } from "@/lib/types";
+import { Link } from "react-router"
+import { ArrowRight } from "lucide-react"
+import { buttonVariants } from "@/components/ui/button"
+import {
+  CategoryGrid,
+  CategoryGridSkeleton,
+} from "@/components/catalog/CategoryGrid"
+import {
+  ProductGrid,
+  ProductGridSkeleton,
+} from "@/components/catalog/ProductGrid"
+import { HeroWaveform } from "@/components/layout/HeroWaveform"
+import { useFetch } from "@/hooks/useFetch"
+import { categoriesPath, featuredProductsPath } from "@/lib/api"
+import type { Category, Paginated, ProductSummary } from "@/lib/types"
+import { PageMeta } from "@/components/PageMeta"
 
 export function LandingPage() {
-  const { data, error } = useFetch<Paginated<ProductSummary>>(featuredProductsPath);
-  const { data: categories, error: categoriesError } = useFetch<Category[]>(categoriesPath);
+  const { data, error } =
+    useFetch<Paginated<ProductSummary>>(featuredProductsPath)
+  const { data: categories, error: categoriesError } =
+    useFetch<Category[]>(categoriesPath)
 
   return (
     <div className="flex flex-col gap-16 md:gap-24">
-      <title>Sonora — Strumenti musicali</title>
+      <PageMeta />
 
-      <section className="panel full-bleed -mt-8 overflow-hidden md:-mt-12">
+      <section className="full-bleed -mt-8 overflow-hidden panel md:-mt-12">
         <div className="mx-auto flex max-w-[96rem] flex-col gap-8 px-4 pt-8 md:gap-12 md:px-8 md:pt-12">
-          <p className="text-silk flex flex-wrap justify-between gap-x-8 gap-y-1 text-muted-foreground">
+          <p className="flex flex-wrap justify-between gap-x-8 gap-y-1 text-silk text-muted-foreground">
             <span>Strumenti musicali</span>
             <span>Chitarre / Bassi / Batterie / Tastiere / Studio</span>
           </p>
@@ -30,13 +39,20 @@ export function LandingPage() {
 
           <div className="flex flex-wrap items-end justify-between gap-6">
             <p className="max-w-md text-lg text-muted-foreground">
-              Chitarre, bassi, batterie, tastiere e tutto il necessario per registrare, in un unico catalogo.
+              Chitarre, bassi, batterie, tastiere e tutto il necessario per
+              registrare, in un unico catalogo.
             </p>
             <div className="flex flex-wrap gap-3">
-              <Link to="/catalogo" className={buttonVariants({ size: "lg", variant: "signal" })}>
+              <Link
+                to="/catalogo"
+                className={buttonVariants({ size: "lg", variant: "signal" })}
+              >
                 Sfoglia il catalogo <ArrowRight data-icon="inline-end" />
               </Link>
-              <Link to="/categorie" className={buttonVariants({ size: "lg", variant: "outline" })}>
+              <Link
+                to="/categorie"
+                className={buttonVariants({ size: "lg", variant: "outline" })}
+              >
                 Esplora le categorie
               </Link>
             </div>
@@ -54,13 +70,15 @@ export function LandingPage() {
             <CategoryGridSkeleton />
           ) : (
             <CategoryGrid
-              items={categories.map(({ id, name, description, slug }) => ({
-                id,
-                name,
-                description,
-                to: `/categorie/${slug}`,
-                image: `/categorie/${slug}.svg`,
-              }))}
+              items={categories.map(
+                ({ id, name, description, slug, image_url }) => ({
+                  id,
+                  name,
+                  description,
+                  to: `/categorie/${slug}`,
+                  image: image_url,
+                })
+              )}
             />
           )}
         </section>
@@ -71,14 +89,19 @@ export function LandingPage() {
           <h2 id="featured-title" className="text-display text-5xl md:text-7xl">
             In evidenza
           </h2>
-          <Link to="/catalogo" className="text-silk underline underline-offset-4 hover:text-primary">
+          <Link
+            to="/catalogo"
+            className="text-silk underline underline-offset-4 hover:text-primary"
+          >
             Tutti i prodotti
           </Link>
         </div>
 
         {error ? (
           <div className="border border-destructive/50 p-6 text-center">
-            <p className="font-medium">Non è stato possibile caricare i prodotti in evidenza.</p>
+            <p className="font-medium">
+              Non è stato possibile caricare i prodotti in evidenza.
+            </p>
             <p className="text-sm text-muted-foreground">{error}</p>
           </div>
         ) : !data ? (
@@ -92,5 +115,5 @@ export function LandingPage() {
         )}
       </section>
     </div>
-  );
+  )
 }

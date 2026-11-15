@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import pg from "pg";
 import { pool } from "../db.js";
 import type { User } from "../types.js";
+import type { PersonName } from "../validation.js";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET || JWT_SECRET.length < 32) {
@@ -14,7 +15,7 @@ const SESSION_DAYS = 7;
 export const SESSION_MAX_AGE_MS = SESSION_DAYS * 24 * 60 * 60 * 1000;
 
 const BCRYPT_COST = 12;
-const USER_COLUMNS = "id, name, email, role";
+const USER_COLUMNS = "id, first_name, last_name, email, role";
 const UNIQUE_VIOLATION = "23505";
 
 // Confronto eseguito quando l'email non esiste: i tempi di risposta non rivelano chi è registrato.
@@ -29,12 +30,12 @@ interface Session {
   version: number;
 }
 
-export async function registerUser(name: string, email: string, password: string): Promise<User> {
+export async function registerUser(name: PersonName, email: string, password: string): Promise<User> {
   const passwordHash = await hashPassword(password);
   try {
     const { rows } = await pool.query<User>(
-      `INSERT INTO users (name, email, password_hash) VALUES ($1, $2, $3) RETURNING ${USER_COLUMNS}`,
-      [name, email, passwordHash],
+      `INSERT INTO users (first_name, last_name, email, password_hash) VALUES ($1, $2, $3, $4) RETURNING ${USER_COLUMNS}`,
+      [name.first_name, name.last_name, email, passwordHash],
     );
     return rows[0]!;
   } catch (err) {
@@ -74,16 +75,16 @@ export async function isCurrentPassword(userId: string, password: string): Promi
   return bcrypt.compare(password, rows[0]?.password_hash ?? DUMMY_HASH);
 }
 
-export async function updateProfile(userId: string, name: string, email: string): Promise<User> {
+export async function updateProfile(userId: string, name: PersonName, email: string): Promise<User> {
   try {
     const { rows } = await pool.query<User>(
       // Cambiando email cade anche l'eventuale link di reset inviato al vecchio indirizzo
       `WITH cleared AS (
          DELETE FROM password_reset_tokens t USING users u
-         WHERE t.user_id = u.id AND u.id = $1 AND u.email <> $3
+         WHERE t.user_id = u.id AND u.id = $1 AND u.email <> $4
        )
-       UPDATE users SET name = $2, email = $3 WHERE id = $1 RETURNING ${USER_COLUMNS}`,
-      [userId, name, email],
+       UPDATE users SET first_name = $2, last_name = $3, email = $4 WHERE id = $1 RETURNING ${USER_COLUMNS}`,
+      [userId, name.first_name, name.last_name, email],
     );
     return rows[0]!;
   } catch (err) {

@@ -1,9 +1,10 @@
 import { Link } from "react-router";
+import { PageMeta } from "@/components/PageMeta";
 
 export function NotFoundPage() {
   return (
     <div className="flex flex-col items-center gap-4 py-8 text-center">
-      <title>Pagina non trovata — Sonora</title>
+      <PageMeta title="Pagina non trovata" noindex />
       <p aria-hidden className="text-display text-[clamp(9rem,34vw,26rem)] text-primary">
         404
       </p>

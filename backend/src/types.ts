@@ -12,6 +12,7 @@ export interface CategoryRow {
   name: string;
   slug: string;
   description: string | null;
+  image_url: string | null;
   parent_id: string | null;
 }
 
@@ -20,6 +21,7 @@ export interface Category {
   name: string;
   slug: string;
   description: string | null;
+  image_url: string | null;
   children: Omit<Category, "children">[];
 }
 
@@ -36,6 +38,9 @@ export interface ProductSummary {
   brand_id: string;
   brand_slug: string;
   brand: string;
+  /** Media dei voti con un decimale, null se nessuno ha ancora recensito il prodotto */
+  rating: number | null;
+  review_count: number;
 }
 
 export interface ProductSpec {
@@ -137,6 +142,13 @@ export interface AdminProduct {
   category: string;
 }
 
+export interface ProductImageInput {
+  url: string;
+  alt: string | null;
+  /** Per le foto caricate su Cloudinary dal pannello; null per quelle indicate con un indirizzo */
+  public_id: string | null;
+}
+
 /** Prodotto completo nel form del pannello: tutti i campi modificabili */
 export interface AdminProductDetail extends AdminProduct {
   description: string | null;
@@ -144,7 +156,7 @@ export interface AdminProductDetail extends AdminProduct {
   brand_id: string;
   specs: ProductSpec[];
   /** Nell'ordine in cui vengono mostrate: la prima è la copertina */
-  images: { url: string; alt: string | null }[];
+  images: ProductImageInput[];
 }
 
 /** Quello che il pannello invia per creare o modificare un prodotto */
@@ -169,23 +181,10 @@ export interface Address {
   is_default: boolean;
 }
 
-export const CARD_BRANDS = ["visa", "mastercard", "amex", "altro"] as const;
-export type CardBrand = (typeof CARD_BRANDS)[number];
-
-/** Solo i dati mostrabili di una carta: mai il numero completo né il CVV */
-export interface PaymentMethod {
-  id: string;
-  brand: CardBrand;
-  last4: string;
-  holder: string;
-  exp_month: number;
-  exp_year: number;
-  is_default: boolean;
-}
-
 export interface User {
   id: string;
-  name: string;
+  first_name: string;
+  last_name: string;
   email: string;
   role: "customer" | "admin";
 }
@@ -196,4 +195,29 @@ export interface AuthResponse {
 
 export interface ApiError {
   error: string;
+}
+
+export interface Review {
+  id: string;
+  rating: number;
+  comment: string;
+  /** Nome e iniziale del cognome, es. "Giulia B.": il cognome intero non si mostra */
+  author: string;
+  /** Chi l'ha scritta ha comprato il prodotto in un ordine non annullato */
+  verified: boolean;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface ReviewSummary {
+  average: number | null;
+  count: number;
+  /** Quante recensioni per ogni voto: indice 0 = 1 stella, indice 4 = 5 stelle */
+  distribution: [number, number, number, number, number];
+}
+
+export interface ReviewsResponse extends Paginated<Review> {
+  summary: ReviewSummary;
+  /** La recensione di chi sta guardando, se ha fatto l'accesso e ne ha scritta una */
+  mine: Review | null;
 }
