@@ -3,7 +3,6 @@
   "version": "0.1.0",
   "description": "API per l'e-commerce di strumenti musicali",
   "main": "dist/index.js",
-  "type": "module",
   "scripts": {
     "dev": "tsx watch --env-file=.env src/index.ts",
     "build": "tsc",
@@ -13,8 +12,8 @@
     "db:migrate": "set -a && . ./.env && set +a && for f in db/migrations/*.sql; do psql \"$DATABASE_URL\" -q -1 -v ON_ERROR_STOP=1 -f \"$f\" || exit 1; done",
     "test": "vitest run",
     "test:watch": "vitest",
-    "make-admin": "tsx --env-file=.env scripts/make-admin.ts",
-    "upload-images": "tsx --env-file=.env scripts/upload-images.ts"
+    "make-admin": "tsx --env-file=.env scripts/make-admin.mts",
+    "upload-images": "tsx --env-file=.env scripts/upload-images.mts"
   },
   "dependencies": {
     "@vercel/functions": "^3.11.3",

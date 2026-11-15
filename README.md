@@ -121,7 +121,7 @@ Il repository è un unico progetto Vercel con due **servizi**, definiti in [`ver
 - Dentro il servizio `frontend`, ogni pagina che non è un file porta a `index.html`, così le pagine di React Router funzionano anche aprendole da un link. I file in `/assets` hanno nomi che cambiano a ogni versione, quindi i browser li tengono in cache per un anno.
 - I servizi non si chiamano tra loro dal server: il frontend è un sito statico, e le chiamate a `/api` partono dal browser verso lo stesso dominio. Per questo non servono *bindings*, e il cookie di sessione funziona senza configurare CORS.
 - Le funzioni girano nella regione `fra1` (Francoforte).
-- Il `package.json` alla radice serve solo a dichiarare `"type": "module"`: Vercel compila il backend in un file `.js` alla radice della funzione, e senza questa riga Node lo leggerebbe come CommonJS ("Cannot use import statement outside a module").
+- Il backend è un pacchetto **CommonJS** (niente `"type": "module"` in `backend/package.json`): il codice resta scritto con `import`, e TypeScript lo compila in `require`. Vercel compila il backend in un file `.js` alla radice della funzione senza portarsi dietro il `package.json`, e Node legge un `.js` senza `package.json` come CommonJS: con i moduli ES la funzione non partiva ("Cannot use import statement outside a module"). Gli script in `backend/scripts/` sono file `.mts`, sempre moduli ES, perché usano `await` fuori dalle funzioni.
 
 Per provare tutto insieme in locale come su Vercel: `vercel dev` dalla radice del repository (richiede la [CLI di Vercel](https://vercel.com/docs/cli) e il progetto collegato con `vercel link`). Per lo sviluppo di tutti i giorni bastano i due `npm run dev` descritti sopra.
 
