@@ -5,7 +5,7 @@
     "backend": {
       "root": "backend",
       "framework": "express",
-      "entrypoint": "src/server.mts"
+      "entrypoint": "src/app.ts"
     },
     "frontend": {
       "root": "frontend",
