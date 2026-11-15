@@ -4,6 +4,8 @@ import { Header } from "@/components/layout/Header";
 import { setUser } from "@/hooks/useAuth";
 import { mockApi } from "@/test/mockApi";
 import { renderPage } from "@/test/render";
+import { systemPrefersDark } from "@/test/matchMedia";
+import { THEME_STORAGE_KEY } from "@/lib/theme";
 import type { User } from "@/lib/types";
 
 const giulia: User = { id: "00000000-0000-4000-8000-000000000001", name: "Giulia Bianchi", email: "giulia@example.com", role: "customer" };
@@ -91,5 +93,31 @@ describe("menu dell'account", () => {
     expect(await screen.findByRole("menuitem", { name: "Uscita non riuscita, riprova" })).toBeInTheDocument();
     expect(screen.getByRole("menu")).toBeInTheDocument();
     expect(screen.getByTestId("current-path")).toHaveTextContent("/account/ordini");
+  });
+});
+
+describe("interruttore del tema", () => {
+  const root = document.documentElement;
+
+  it("c'è anche per chi non ha fatto l'accesso e passa dal chiaro allo scuro e ritorno", async () => {
+    setUser(null);
+    const { user } = renderHeader();
+    expect(root).toHaveClass("light");
+
+    await user.click(screen.getByRole("button", { name: "Passa al tema scuro" }));
+    expect(root).toHaveClass("dark");
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe("dark");
+
+    await user.click(screen.getByRole("button", { name: "Passa al tema chiaro" }));
+    expect(root).toHaveClass("light");
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe("light");
+  });
+
+  it("con il tema del dispositivo parte da quello in uso", async () => {
+    systemPrefersDark(true);
+    const { user } = renderHeader();
+
+    await user.click(screen.getByRole("button", { name: "Passa al tema chiaro" }));
+    expect(root).toHaveClass("light");
   });
 });

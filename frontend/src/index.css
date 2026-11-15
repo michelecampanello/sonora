@@ -69,6 +69,15 @@
     --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* Barre di scorrimento, controlli nativi e autocompletamento seguono il tema */
+:root {
+    color-scheme: light;
+}
+
+.dark {
+    color-scheme: dark;
+}
+
 :root {
     --background: oklch(0.966 0.004 121.6);          /* nichel #F3F4F1 */
     --foreground: oklch(0.249 0.020 34.4);           /* palissandro #2A1E1B */

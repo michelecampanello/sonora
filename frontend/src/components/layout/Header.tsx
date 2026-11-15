@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth"
 import { useCart } from "@/hooks/useCart"
 import { AccountMenu } from "./AccountMenu"
 import { LevelMark } from "./LevelMark"
+import { ThemeToggle } from "./ThemeToggle"
 
 const NAV_LINK =
   "text-silk border-b-2 border-transparent py-1 text-muted-foreground transition-colors hover:text-foreground aria-[current=page]:border-signal aria-[current=page]:text-foreground"
@@ -82,6 +83,7 @@ export function Header() {
           />
         </form>
 
+        <ThemeToggle />
         {user && <AccountMenu user={user} />}
         {!user && !loading && (
           <Link

@@ -1,6 +1,8 @@
 import { render } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
+import { ThemeProvider } from "@/components/theme-provider";
+import { THEME_STORAGE_KEY } from "@/lib/theme";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router";
 
 /** Mostra il percorso attuale, per controllare dove porta un link o un redirect */
@@ -18,13 +20,15 @@ export function renderPage(page: ReactElement, { path = "/", url = path, state }
   return {
     user: userEvent.setup(),
     ...render(
-      <MemoryRouter initialEntries={[{ pathname: url, state }]}>
-        <Routes>
-          <Route path={path} element={page} />
-          <Route path="*" element={null} />
-        </Routes>
-        <CurrentPath />
-      </MemoryRouter>,
+      <ThemeProvider storageKey={THEME_STORAGE_KEY}>
+        <MemoryRouter initialEntries={[{ pathname: url, state }]}>
+          <Routes>
+            <Route path={path} element={page} />
+            <Route path="*" element={null} />
+          </Routes>
+          <CurrentPath />
+        </MemoryRouter>
+      </ThemeProvider>,
     ),
   };
 }

@@ -1,6 +1,6 @@
 import * as React from "react"
 
-type Theme = "dark" | "light" | "system"
+export type Theme = "dark" | "light" | "system"
 type ResolvedTheme = "dark" | "light"
 
 type ThemeProviderProps = {
@@ -12,6 +12,8 @@ type ThemeProviderProps = {
 
 type ThemeProviderState = {
   theme: Theme
+  /** Il tema davvero in uso: con "system" è quello del sistema operativo */
+  resolvedTheme: ResolvedTheme
   setTheme: (theme: Theme) => void
 }
 
@@ -57,25 +59,6 @@ function disableTransitionsTemporarily() {
   }
 }
 
-function isEditableTarget(target: EventTarget | null) {
-  if (!(target instanceof HTMLElement)) {
-    return false
-  }
-
-  if (target.isContentEditable) {
-    return true
-  }
-
-  const editableParent = target.closest(
-    "input, textarea, select, [contenteditable='true']"
-  )
-  if (editableParent) {
-    return true
-  }
-
-  return false
-}
-
 export function ThemeProvider({
   children,
   defaultTheme = "system",
@@ -100,35 +83,14 @@ export function ThemeProvider({
     [storageKey]
   )
 
-  const applyTheme = React.useCallback(
-    (nextTheme: Theme) => {
-      const root = document.documentElement
-      const resolvedTheme =
-        nextTheme === "system" ? getSystemTheme() : nextTheme
-      const restoreTransitions = disableTransitionOnChange
-        ? disableTransitionsTemporarily()
-        : null
-
-      root.classList.remove("light", "dark")
-      root.classList.add(resolvedTheme)
-
-      if (restoreTransitions) {
-        restoreTransitions()
-      }
-    },
-    [disableTransitionOnChange]
-  )
+  // Il tema del sistema operativo, aggiornato se cambia mentre la pagina è aperta
+  const [systemTheme, setSystemTheme] =
+    React.useState<ResolvedTheme>(getSystemTheme)
 
   React.useEffect(() => {
-    applyTheme(theme)
-
-    if (theme !== "system") {
-      return undefined
-    }
-
     const mediaQuery = window.matchMedia(COLOR_SCHEME_QUERY)
     const handleChange = () => {
-      applyTheme("system")
+      setSystemTheme(getSystemTheme())
     }
 
     mediaQuery.addEventListener("change", handleChange)
@@ -136,47 +98,23 @@ export function ThemeProvider({
     return () => {
       mediaQuery.removeEventListener("change", handleChange)
     }
-  }, [theme, applyTheme])
+  }, [])
+
+  const resolvedTheme = theme === "system" ? systemTheme : theme
 
   React.useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.repeat) {
-        return
-      }
+    const root = document.documentElement
+    const restoreTransitions = disableTransitionOnChange
+      ? disableTransitionsTemporarily()
+      : null
 
-      if (event.metaKey || event.ctrlKey || event.altKey) {
-        return
-      }
+    root.classList.remove("light", "dark")
+    root.classList.add(resolvedTheme)
 
-      if (isEditableTarget(event.target)) {
-        return
-      }
-
-      if (event.key.toLowerCase() !== "d") {
-        return
-      }
-
-      setThemeState((currentTheme) => {
-        const nextTheme =
-          currentTheme === "dark"
-            ? "light"
-            : currentTheme === "light"
-              ? "dark"
-              : getSystemTheme() === "dark"
-                ? "light"
-                : "dark"
-
-        localStorage.setItem(storageKey, nextTheme)
-        return nextTheme
-      })
+    if (restoreTransitions) {
+      restoreTransitions()
     }
-
-    window.addEventListener("keydown", handleKeyDown)
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown)
-    }
-  }, [storageKey])
+  }, [resolvedTheme, disableTransitionOnChange])
 
   React.useEffect(() => {
     const handleStorageChange = (event: StorageEvent) => {
@@ -206,9 +144,10 @@ export function ThemeProvider({
   const value = React.useMemo(
     () => ({
       theme,
+      resolvedTheme,
       setTheme,
     }),
-    [theme, setTheme]
+    [theme, resolvedTheme, setTheme]
   )
 
   return (
