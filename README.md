@@ -12,7 +12,7 @@ Progetto full stack in TypeScript: React (frontend) + Node.js/Express (backend) 
 - [x] Tappa 3 — Carrello
 - [x] Tappa 4 — Registrazione e login (JWT)
 - [x] Tappa 5 — Checkout e area personale (ordini, indirizzi, metodi di pagamento, impostazioni). Il pagamento è solo alla consegna
-- [x] Tappa 6 — Pannello admin: ordini (stati, annullamento con ritorno in magazzino), creazione e modifica dei prodotti con caratteristiche e immagini. Le immagini si indicano con un indirizzo: il caricamento dei file non c'è ancora
+- [x] Tappa 6 — Pannello admin: ordini (stati, annullamento con ritorno in magazzino), creazione e modifica dei prodotti con caratteristiche e foto caricate su Cloudinary
 - [ ] Tappa 7 — Pubblicazione online
 
 ## Avvio in locale
@@ -104,6 +104,7 @@ Tutte le rotte rispondono 401 senza sessione e 403 a chi non è amministratore.
 | GET | `/api/admin/products/:id` | Il prodotto completo, per il form di modifica |
 | PUT | `/api/admin/products/:id` | Sostituisce tutti i dati del prodotto; lo slug resta lo stesso |
 | PATCH | `/api/admin/products/:id` | Modifica solo prezzo, magazzino, visibilità o evidenza |
+| POST | `/api/admin/uploads/signature` | Firma il caricamento di una foto su Cloudinary; 503 se `CLOUDINARY_URL` manca |
 
 Il pagamento avviene alla consegna, quindi un ordine passa da *in lavorazione* a *spedito* e poi a *pagato*. Si può annullare finché non è pagato. I prodotti non si eliminano, perché gli ordini fanno riferimento a loro: per toglierli dal negozio si nascondono.
 
@@ -130,6 +131,8 @@ Esempio: `/api/products?category=chitarre&maxPrice=400&sort=price_asc`
 - **Reset della password con link monouso** valido un'ora: nel database resta solo l'impronta SHA-256 del token, e il token viaggia dopo il `#` dell'URL, quindi non finisce nei log dei server. L'email parte con [Resend](https://resend.com), in HTML e in testo semplice. Se l'invio fallisce il link viene cancellato, così si può chiederne subito un altro invece di aspettare i 2 minuti fra una richiesta e l'altra.
   Configurazione in `backend/.env`: `RESEND_API_KEY` (da [resend.com/api-keys](https://resend.com/api-keys)) e `MAIL_FROM`, un mittente con un dominio verificato su Resend. In sviluppo, senza `MAIL_FROM` si usa l'indirizzo di prova `onboarding@resend.dev`; senza `RESEND_API_KEY` il link viene stampato nella console del backend. In produzione il server non parte se manca una delle due.
 - **Pannello admin nello stesso frontend**, sotto `/admin`: React.lazy lo mette in un file JavaScript separato, che chi compra non scarica. Il frontend nasconde il pannello a chi non è admin solo per comodità; a proteggere i dati è il backend, con il middleware `requireAdmin` su tutte le rotte `/api/admin`. Un admin si crea solo con `npm run make-admin`, mai da un'API.
+- **Foto dei prodotti su Cloudinary, caricate direttamente dal browser**: il backend firma soltanto la richiesta (SHA-1 dei parametri, come da [documentazione](https://cloudinary.com/documentation/authentication_signatures)), quindi il segreto API non arriva mai al browser e i file non passano dal nostro server. La firma fissa formati ammessi e cartella, e vale un'ora. Si configura con `CLOUDINARY_URL` in `backend/.env`; senza, le immagini si indicano con un indirizzo come prima.
+  Di ogni foto caricata si salva il `public_id` restituito da Cloudinary. Quando una foto viene tolta da un prodotto, e nessun altro prodotto la usa, dopo il salvataggio viene cancellata da Cloudinary e dalla cache della CDN. Le immagini indicate con un indirizzo non vengono mai cancellate.
 - **Password con bcrypt e limite ai tentativi** su login e registrazione. Il limite è per indirizzo IP: dietro un proxy, online, va configurato `trust proxy` in Express.
 - **Nessun dato sensibile delle carte**: si salvano solo circuito, ultime 4 cifre, intestatario e scadenza. Per incassare davvero servirà un fornitore di pagamenti, come Stripe, che custodisca le carte al posto del negozio.
 - **TypeScript in modalità `strict`**, con i tipi delle risposte API raccolti in `src/types.ts` (riutilizzabili nel frontend).

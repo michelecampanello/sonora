@@ -102,3 +102,4 @@ export function adminProductsPath({ q, lowStock, page }: { q?: string | undefine
 }
 export const adminProductPath = (id: string) => `/api/admin/products/${encodeURIComponent(id)}`;
 export const adminNewProductPath = "/api/admin/products";
+export const uploadSignaturePath = "/api/admin/uploads/signature";

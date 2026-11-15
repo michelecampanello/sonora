@@ -206,7 +206,8 @@ export interface AdminProductDetail extends AdminProduct {
   category_id: string;
   brand_id: string;
   specs: ProductSpec[];
-  images: { url: string; alt: string | null }[]; // la prima è la copertina
+  // La prima è la copertina. public_id solo per le foto caricate su Cloudinary dal pannello
+  images: { url: string; alt: string | null; public_id: string | null }[];
 }
 
 /** Quello che il form invia per creare o modificare un prodotto */

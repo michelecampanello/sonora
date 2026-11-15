@@ -91,7 +91,7 @@ export async function findAdminProduct(id: string): Promise<AdminProductDetail |
   const [specs, images] = await Promise.all([
     pool.query<ProductSpec>("SELECT label, value FROM product_specs WHERE product_id = $1 ORDER BY sort_order", [id]),
     pool.query<AdminProductDetail["images"][number]>(
-      "SELECT url, alt FROM product_images WHERE product_id = $1 ORDER BY sort_order, id",
+      "SELECT url, alt, cloudinary_public_id AS public_id FROM product_images WHERE product_id = $1 ORDER BY sort_order, id",
       [id],
     ),
   ]);
@@ -111,12 +111,10 @@ async function replaceDetails(client: PoolClient, productId: string, input: Prod
     ]);
   }
   for (const [index, image] of input.images.entries()) {
-    await client.query("INSERT INTO product_images (product_id, url, alt, sort_order) VALUES ($1, $2, $3, $4)", [
-      productId,
-      image.url,
-      image.alt,
-      index,
-    ]);
+    await client.query(
+      "INSERT INTO product_images (product_id, url, alt, sort_order, cloudinary_public_id) VALUES ($1, $2, $3, $4, $5)",
+      [productId, image.url, image.alt, index, image.public_id],
+    );
   }
 }
 
@@ -170,21 +168,41 @@ export async function createProduct(input: ProductInput): Promise<AdminProductDe
   return (await findAdminProduct(id))!;
 }
 
+export interface ReplacedProduct {
+  product: AdminProductDetail;
+  /** Foto Cloudinary tolte dal prodotto e non usate da nessun altro: si possono cancellare */
+  unusedCloudinaryIds: string[];
+}
+
 /**
  * Sostituisce tutti i dati di un prodotto. Lo slug non cambia, anche se cambia il nome:
  * i link già condivisi e i carrelli salvati continuano a funzionare.
  * Restituisce null se il prodotto non esiste; lancia gli stessi errori di createProduct.
  */
-export async function replaceProduct(id: string, input: ProductInput): Promise<AdminProductDetail | null> {
-  const found = await inTransaction(async (client) => {
+export async function replaceProduct(id: string, input: ProductInput): Promise<ReplacedProduct | null> {
+  const result = await inTransaction(async (client) => {
     const assignments = PRODUCT_FIELDS.map((field, i) => `${field} = $${i + 2}`).join(", ");
     const { rowCount } = await client.query(`UPDATE products SET ${assignments} WHERE id = $1`, [
       id,
       ...PRODUCT_FIELDS.map((field) => input[field]),
     ]);
-    if (!rowCount) return false;
+    if (!rowCount) return null;
+
+    const before = await client.query<{ public_id: string }>(
+      "SELECT cloudinary_public_id AS public_id FROM product_images WHERE product_id = $1 AND cloudinary_public_id IS NOT NULL",
+      [id],
+    );
     await replaceDetails(client, id, input);
-    return true;
+
+    // Tra le foto che c'erano, quelle che dopo il salvataggio non usa più nessun prodotto
+    const previous = before.rows.map((row) => row.public_id);
+    const stillUsed = await client.query<{ public_id: string }>(
+      "SELECT DISTINCT cloudinary_public_id AS public_id FROM product_images WHERE cloudinary_public_id = ANY($1)",
+      [previous],
+    );
+    const used = new Set(stillUsed.rows.map((row) => row.public_id));
+    return { unusedCloudinaryIds: [...new Set(previous)].filter((publicId) => !used.has(publicId)) };
   });
-  return found ? findAdminProduct(id) : null;
+  if (!result) return null;
+  return { product: (await findAdminProduct(id))!, ...result };
 }

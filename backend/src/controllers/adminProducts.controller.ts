@@ -9,6 +9,7 @@ import {
   updateProduct,
   type ProductChanges,
 } from "../services/adminProducts.service.js";
+import { cloudinaryConfig, deleteUnusedImages, isCloudinaryImage } from "../services/cloudinary.service.js";
 import { isUuid } from "../uuid.js";
 import { asRecord, pageFrom, text } from "../validation.js";
 import type { AdminProduct, AdminProductDetail, ApiError, Paginated, ProductInput } from "../types.js";
@@ -89,9 +90,22 @@ function parseImages(value: unknown): ProductInput["images"] {
     const alt = text(image.alt);
     if (!isImageUrl(url)) throw new InvalidInput("Indirizzo dell'immagine non valido: usa un percorso che inizia con / oppure https://");
     if (alt.length > 200) throw new InvalidInput("Testo alternativo troppo lungo");
-    images.push({ url, alt: alt || null });
+    images.push({ url, alt: alt || null, public_id: parsePublicId(image.public_id, url) });
   }
   return images;
+}
+
+/**
+ * Il public_id di una foto caricata su Cloudinary, oppure null per le immagini indicate con un indirizzo.
+ * Deve corrispondere all'URL: togliendo la foto dal prodotto, verrà cancellata proprio quella.
+ */
+function parsePublicId(value: unknown, url: string): string | null {
+  if (value === undefined || value === null || value === "") return null;
+  const config = cloudinaryConfig();
+  if (typeof value !== "string" || !config || !isCloudinaryImage(url, value, config)) {
+    throw new InvalidInput("La foto caricata non corrisponde al suo indirizzo: caricala di nuovo");
+  }
+  return value;
 }
 
 /** Il prodotto completo inviato dal form; active e featured, se mancano, valgono true e false */
@@ -192,9 +206,11 @@ export const putProduct = asyncHandler<{ id: string }, AdminProductDetail | ApiE
   if ("error" in input) return res.status(400).json(input);
   if (!isUuid(req.params.id)) return res.status(404).json(NOT_FOUND);
   try {
-    const product = await replaceProduct(req.params.id, input.value);
-    if (!product) return res.status(404).json(NOT_FOUND);
-    return res.json(product);
+    const replaced = await replaceProduct(req.params.id, input.value);
+    if (!replaced) return res.status(404).json(NOT_FOUND);
+    // Dopo il salvataggio, e senza farlo aspettare: se Cloudinary non risponde resta solo una foto inutilizzata
+    void deleteUnusedImages(replaced.unusedCloudinaryIds);
+    return res.json(replaced.product);
   } catch (err) {
     const [status, body] = saveError(err);
     return res.status(status).json(body);

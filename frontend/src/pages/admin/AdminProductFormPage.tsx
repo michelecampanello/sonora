@@ -1,6 +1,6 @@
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router";
-import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Plus, Trash2, Upload } from "lucide-react";
 import { AccountSection, FormError, ListSkeleton, LoadError } from "@/components/account/AccountParts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { NativeSelect, NativeSelectOptGroup, NativeSelectOption } from "@/compon
 import { Textarea } from "@/components/ui/textarea";
 import { useFetch } from "@/hooks/useFetch";
 import { adminNewProductPath, adminProductPath, brandsPath, categoriesPath, sendJson } from "@/lib/api";
+import { ACCEPTED_IMAGE_TYPES, uploadImage } from "@/lib/cloudinary";
 import type { AdminProductDetail, Brand, Category, ProductInput } from "@/lib/types";
 
 /** Nel form prezzo e magazzino sono testo: si convertono solo all'invio */
@@ -16,7 +17,7 @@ interface Draft extends Omit<ProductInput, "price" | "stock" | "description" | "
   price: string;
   stock: string;
   description: string;
-  images: { url: string; alt: string }[];
+  images: { url: string; alt: string; public_id: string | null }[];
 }
 
 const EMPTY: Draft = {
@@ -44,7 +45,7 @@ const toDraft = (product: AdminProductDetail): Draft => ({
   category_id: product.category_id,
   brand_id: product.brand_id,
   specs: product.specs,
-  images: product.images.map((image) => ({ url: image.url, alt: image.alt ?? "" })),
+  images: product.images.map((image) => ({ url: image.url, alt: image.alt ?? "", public_id: image.public_id })),
 });
 
 const toInput = (draft: Draft) => ({
@@ -81,6 +82,30 @@ function ProductForm({ product, categories, brands }: { product?: AdminProductDe
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string>();
   const [notice, setNotice] = useState<string | undefined>((location.state as { notice?: string } | null)?.notice);
+
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(0);
+  const [uploadErrors, setUploadErrors] = useState<string[]>([]);
+
+  /** Carica i file scelti uno alla volta e aggiunge ognuno in fondo alle immagini appena è pronto */
+  const upload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const files = [...(event.target.files ?? [])];
+    event.target.value = ""; // così si può scegliere di nuovo lo stesso file
+    setUploadErrors([]);
+    setNotice(undefined);
+    setUploading(files.length);
+    for (const file of files) {
+      try {
+        const { url, publicId } = await uploadImage(file);
+        // Aggiornamento funzionale: nel frattempo il form può essere cambiato
+        setDraft((current) => ({ ...current, images: [...current.images, { url, alt: "", public_id: publicId }] }));
+      } catch (err) {
+        setUploadErrors((current) => [...current, err instanceof Error ? err.message : `${file.name}: errore imprevisto`]);
+      } finally {
+        setUploading((n) => n - 1);
+      }
+    }
+  };
 
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) => {
     setDraft((current) => ({ ...current, [key]: value }));
@@ -215,8 +240,8 @@ function ProductForm({ product, categories, brands }: { product?: AdminProductDe
       <fieldset className="flex flex-col gap-3">
         <legend className="text-silk mb-3 text-muted-foreground">Immagini</legend>
         <p className="text-sm text-muted-foreground">
-          La prima è la copertina. Usa un percorso del sito (es. /prodotti/nome.svg) oppure un indirizzo https://. Senza immagini il
-          negozio mostra un'illustrazione automatica.
+          La prima è la copertina. Carica una foto (JPG, PNG, WebP o AVIF, fino a 10 MB) oppure indica un percorso del sito
+          (es. /prodotti/nome.svg) o un indirizzo https://. Senza immagini il negozio mostra un'illustrazione automatica.
         </p>
         {draft.images.map((image, i) => (
           <div key={i} className="grid grid-cols-[3rem_minmax(0,2fr)_minmax(0,1fr)_auto] items-center gap-2">
@@ -229,7 +254,8 @@ function ProductForm({ product, categories, brands }: { product?: AdminProductDe
               aria-label={`Indirizzo immagine ${i + 1}`}
               required
               value={image.url}
-              onChange={(e) => set("images", draft.images.map((img, j) => (j === i ? { ...img, url: e.target.value } : img)))}
+              // Cambiando l'indirizzo a mano non è più la foto caricata: non va cancellata da Cloudinary
+              onChange={(e) => set("images", draft.images.map((img, j) => (j === i ? { ...img, url: e.target.value, public_id: null } : img)))}
             />
             <Input
               aria-label={`Testo alternativo immagine ${i + 1}`}
@@ -258,14 +284,35 @@ function ProductForm({ product, categories, brands }: { product?: AdminProductDe
             </div>
           </div>
         ))}
-        <Button type="button" variant="outline" className="self-start" onClick={() => set("images", [...draft.images, { url: "", alt: "" }])}>
-          <Plus /> Aggiungi immagine
-        </Button>
+        <div className="flex flex-wrap gap-3">
+          <input
+            ref={fileInput}
+            type="file"
+            accept={ACCEPTED_IMAGE_TYPES}
+            multiple
+            hidden
+            aria-label="Scegli le foto da caricare"
+            onChange={(e) => void upload(e)}
+          />
+          <Button type="button" variant="outline" disabled={uploading > 0} onClick={() => fileInput.current?.click()}>
+            <Upload /> {uploading > 0 ? `Caricamento… (${uploading})` : "Carica foto"}
+          </Button>
+          <Button type="button" variant="outline" onClick={() => set("images", [...draft.images, { url: "", alt: "", public_id: null }])}>
+            <Plus /> Aggiungi indirizzo
+          </Button>
+        </div>
+        {uploadErrors.length > 0 && (
+          <ul role="alert" className="flex flex-col gap-1 border border-signal p-3 text-sm text-signal">
+            {uploadErrors.map((message) => (
+              <li key={message}>{message}</li>
+            ))}
+          </ul>
+        )}
       </fieldset>
 
       <FormError message={error} />
       <div className="flex flex-wrap items-center gap-4 border-t pt-6">
-        <Button type="submit" size="lg" disabled={saving}>
+        <Button type="submit" size="lg" disabled={saving || uploading > 0}>
           {saved ? "Salva modifiche" : "Crea prodotto"}
         </Button>
         {saved?.active && (

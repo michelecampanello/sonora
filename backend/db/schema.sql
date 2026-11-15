@@ -102,8 +102,14 @@ CREATE TABLE product_images (
   product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
   url        TEXT NOT NULL,
   alt        VARCHAR(200),                -- testo alternativo; se manca si usa il nome del prodotto
-  sort_order INTEGER NOT NULL DEFAULT 0   -- la prima immagine in ordine è la copertina
+  sort_order INTEGER NOT NULL DEFAULT 0,  -- la prima immagine in ordine è la copertina
+  -- public_id su Cloudinary per le foto caricate dal pannello: serve a cancellarle quando vengono tolte.
+  -- NULL per le immagini indicate con un indirizzo, che non si cancellano mai.
+  cloudinary_public_id VARCHAR(255)
 );
+
+CREATE INDEX idx_product_images_cloudinary ON product_images(cloudinary_public_id)
+  WHERE cloudinary_public_id IS NOT NULL;
 
 CREATE TABLE users (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),

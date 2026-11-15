@@ -137,6 +137,13 @@ export interface AdminProduct {
   category: string;
 }
 
+export interface ProductImageInput {
+  url: string;
+  alt: string | null;
+  /** Per le foto caricate su Cloudinary dal pannello; null per quelle indicate con un indirizzo */
+  public_id: string | null;
+}
+
 /** Prodotto completo nel form del pannello: tutti i campi modificabili */
 export interface AdminProductDetail extends AdminProduct {
   description: string | null;
@@ -144,7 +151,7 @@ export interface AdminProductDetail extends AdminProduct {
   brand_id: string;
   specs: ProductSpec[];
   /** Nell'ordine in cui vengono mostrate: la prima è la copertina */
-  images: { url: string; alt: string | null }[];
+  images: ProductImageInput[];
 }
 
 /** Quello che il pannello invia per creare o modificare un prodotto */
