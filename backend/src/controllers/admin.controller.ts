@@ -1,4 +1,4 @@
-import { asyncHandler } from "../asyncHandler.js";
+import { asyncHandler } from "../lib/asyncHandler.js";
 import {
   allowedNextStatuses,
   changeOrderStatus,
@@ -7,8 +7,8 @@ import {
   listAllOrders,
 } from "../services/adminOrders.service.js";
 import { findAnyOrder } from "../services/orders.service.js";
-import { isUuid } from "../uuid.js";
-import { asRecord, pageFrom } from "../validation.js";
+import { isUuid } from "../lib/uuid.js";
+import { asRecord, pageFrom } from "../lib/validation.js";
 import {
   ORDER_STATUSES,
   type AdminOrderSummary,

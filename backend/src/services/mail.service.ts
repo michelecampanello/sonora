@@ -1,5 +1,5 @@
 import { Resend } from "resend";
-import { FRONTEND_ORIGIN } from "../config.js";
+import { FRONTEND_ORIGIN } from "../lib/config.js";
 import type { EmailContent } from "../emails/layout.js";
 import { orderConfirmationEmail } from "../emails/orderConfirmation.js";
 import { passwordResetEmail } from "../emails/passwordReset.js";

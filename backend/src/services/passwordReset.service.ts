@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
-import { FRONTEND_ORIGIN } from "../config.js";
-import { pool } from "../db.js";
+import { FRONTEND_ORIGIN } from "../lib/config.js";
+import { pool } from "../lib/db.js";
 import { hashPassword } from "./auth.service.js";
 import { sendPasswordResetEmail } from "./mail.service.js";
 

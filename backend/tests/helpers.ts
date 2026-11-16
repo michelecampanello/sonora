@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import bcrypt from "bcryptjs";
 import request from "supertest";
 import app from "../src/app.js";
-import { pool } from "../src/db.js";
+import { pool } from "../src/lib/db.js";
 
 export const api = () => request(app);
 

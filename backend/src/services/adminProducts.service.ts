@@ -1,5 +1,5 @@
 import pg, { type PoolClient } from "pg";
-import { pool } from "../db.js";
+import { pool } from "../lib/db.js";
 import type { AdminProduct, AdminProductDetail, Paginated, ProductInput, ProductSpec } from "../types.js";
 import { LOW_STOCK_THRESHOLD } from "./adminOrders.service.js";
 

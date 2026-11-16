@@ -188,7 +188,7 @@ In produzione il backend non parte senza `RESEND_API_KEY` e `MAIL_FROM`: senza l
 
 ### Cosa cambia rispetto al server locale
 
-- Le email e la pulizia delle foto su Cloudinary partono dopo la risposta: su Vercel passano da `waitUntil` ([`backend/src/background.ts`](backend/src/background.ts)), che tiene attiva la funzione finché hanno finito. In locale non cambia nulla.
+- Le email e la pulizia delle foto su Cloudinary partono dopo la risposta: su Vercel passano da `waitUntil` ([`backend/src/lib/background.ts`](backend/src/lib/background.ts)), che tiene attiva la funzione finché hanno finito. In locale non cambia nulla.
 - Il pool di connessioni a Postgres è registrato con `attachDatabasePool`, così Vercel chiude le connessioni inattive prima di sospendere la funzione. Il backend non imposta parametri di sessione sulla connessione, che il pooler di Neon rifiuterebbe: la soglia della ricerca tollerante agli errori sta nella query.
 - Express si fida dell'header `X-Forwarded-For` di Vercel (`trust proxy`), per vedere l'IP vero di chi visita.
 - Il limite ai tentativi di accesso è tenuto in memoria, quindi vale per ogni istanza della funzione e non per tutto il sito insieme: protegge dai tentativi ripetuti, ma con traffico alto Vercel può dividerli su più istanze. Per un limite condiviso servirebbe uno store esterno, come Redis.

@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type TestAgent from "supertest/lib/agent.js";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { pool } from "../../src/db.js";
+import { pool } from "../../src/lib/db.js";
 import { api, createProduct, signedInAgent } from "../helpers.js";
 
 let admin: TestAgent;

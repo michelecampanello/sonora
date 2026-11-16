@@ -1,5 +1,5 @@
-import { asyncHandler } from "../asyncHandler.js";
-import { runAfterResponse } from "../background.js";
+import { asyncHandler } from "../lib/asyncHandler.js";
+import { runAfterResponse } from "../lib/background.js";
 import {
   createProduct,
   findAdminProduct,
@@ -11,8 +11,8 @@ import {
   type ProductChanges,
 } from "../services/adminProducts.service.js";
 import { cloudinaryConfig, deleteUnusedImages, isCloudinaryImage } from "../services/cloudinary.service.js";
-import { isUuid } from "../uuid.js";
-import { asRecord, pageFrom, text } from "../validation.js";
+import { isUuid } from "../lib/uuid.js";
+import { asRecord, pageFrom, text } from "../lib/validation.js";
 import type { AdminProduct, AdminProductDetail, ApiError, Paginated, ProductInput } from "../types.js";
 
 const MAX_STOCK = 100_000;

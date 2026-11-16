@@ -1,7 +1,7 @@
 // Dà il ruolo di amministratore a un account già registrato:
 //   npm run make-admin -- mario@example.com
 // Non esiste una rotta per farlo: un admin si crea solo da chi ha accesso al server e al database.
-import { pool } from "../src/db.js";
+import { pool } from "../src/lib/db.js";
 
 const email = process.argv[2]?.trim().toLowerCase();
 if (!email) {

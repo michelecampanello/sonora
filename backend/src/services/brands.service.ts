@@ -1,4 +1,4 @@
-import { pool } from "../db.js";
+import { pool } from "../lib/db.js";
 import type { Brand } from "../types.js";
 
 export async function listBrands(): Promise<Brand[]> {

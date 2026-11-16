@@ -1,7 +1,7 @@
 import type { CookieOptions, Request, Response } from "express";
-import { runAfterResponse } from "../background.js";
-import { asyncHandler } from "../asyncHandler.js";
-import { isEmail } from "../email.js";
+import { runAfterResponse } from "../lib/background.js";
+import { asyncHandler } from "../lib/asyncHandler.js";
+import { isEmail } from "../lib/email.js";
 import { SESSION_COOKIE } from "../middleware/auth.middleware.js";
 import {
   createSessionToken,
@@ -10,7 +10,7 @@ import {
   SESSION_MAX_AGE_MS,
   verifyCredentials,
 } from "../services/auth.service.js";
-import { asRecord, parsePersonName, passwordError, text } from "../validation.js";
+import { asRecord, parsePersonName, passwordError, text } from "../lib/validation.js";
 import { requestPasswordReset, resetPassword as applyPasswordReset } from "../services/passwordReset.service.js";
 import { sendWelcomeEmail } from "../services/mail.service.js";
 import type { ApiError, AuthResponse, User } from "../types.js";

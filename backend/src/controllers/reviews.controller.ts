@@ -1,6 +1,6 @@
-import { asyncHandler } from "../asyncHandler.js";
-import { isSlug } from "../slug.js";
-import { isUuid } from "../uuid.js";
+import { asyncHandler } from "../lib/asyncHandler.js";
+import { isSlug } from "../lib/slug.js";
+import { isUuid } from "../lib/uuid.js";
 import {
   deleteOwnReview,
   deleteReviewById,
@@ -8,7 +8,7 @@ import {
   listReviews,
   saveReview,
 } from "../services/reviews.service.js";
-import { asRecord } from "../validation.js";
+import { asRecord } from "../lib/validation.js";
 import type { ApiError, Review, ReviewsResponse } from "../types.js";
 
 const MAX_COMMENT_LENGTH = 2000;

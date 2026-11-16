@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pool } from "../../src/db.js";
+import { pool } from "../../src/lib/db.js";
 import { api, createUser, newAgent, signedInAgent, uniqueEmail } from "../helpers.js";
 
 const address = (name = "Mario Rossi") => ({
