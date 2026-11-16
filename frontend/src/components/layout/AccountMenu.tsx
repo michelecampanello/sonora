@@ -23,16 +23,16 @@ import { logout } from "@/hooks/useAuth"
 import { fullName, greeting } from "@/lib/format"
 import type { User as UserData } from "@/lib/types"
 
-export const ACCOUNT_LINKS: readonly (readonly [
-  to: string,
-  label: string,
-  icon: LucideIcon,
-])[] = [
-  ["/admin", "Dashboard", LayoutDashboard],
+type MenuLink = readonly [to: string, label: string, icon: LucideIcon]
+
+export const ACCOUNT_LINKS: readonly MenuLink[] = [
   ["/account/ordini", "Ordini", Package],
   ["/account/indirizzi", "Indirizzi", MapPin],
   ["/account/impostazioni", "Impostazioni", Settings2],
 ]
+
+/** In cima al menu, solo per gli admin: il pannello di gestione del negozio */
+const ADMIN_LINK: MenuLink = ["/admin", "Dashboard", LayoutDashboard]
 
 /** Le iniziali di nome e cognome, come l'etichetta di un canale sul mixer: "GB" */
 function initials(user: UserData): string {
@@ -50,6 +50,8 @@ export function AccountMenu({ user }: { user: UserData }) {
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const [logoutFailed, setLogoutFailed] = useState(false)
+  const links =
+    user.role === "admin" ? [ADMIN_LINK, ...ACCOUNT_LINKS] : ACCOUNT_LINKS
 
   const signOut = () => {
     setLogoutFailed(false)
@@ -112,7 +114,7 @@ export function AccountMenu({ user }: { user: UserData }) {
           </DropdownMenuLabel>
 
           <div className="py-1">
-            {ACCOUNT_LINKS.map(([to, label, Icon]) => {
+            {links.map(([to, label, Icon]) => {
               const current =
                 location.pathname === to ||
                 location.pathname.startsWith(`${to}/`)
