@@ -1,6 +1,0 @@
-{
-  "name": "sonora",
-  "private": true,
-  "type": "module",
-  "description": "Su Vercel la funzione del backend viene compilata in un file .js alla radice della funzione (/var/task): \"type\": \"module\" qui fa sì che Node lo carichi come modulo ES, come il resto del backend"
-}

@@ -113,15 +113,19 @@ Il repository è un unico progetto Vercel con due **servizi**, definiti in [`ver
 
 | Servizio | Cartella | Cosa è | Pubblico su |
 |---|---|---|---|
-| `backend` | `backend/` | L'API Express, eseguita come funzione a partire da `src/app.ts` (Vercel compila il TypeScript da sé) | `/api/*` |
+| `backend` | `backend/` | L'API Express, eseguita come funzione a partire da `src/app.ts`, compilata da `npm run build` in un unico file | `/api/*` |
 | `frontend` | `frontend/` | Il sito React, creato da Vite in `dist/` | tutto il resto |
 
 - Ogni servizio si installa e si compila da solo nella sua cartella.
 - Le regole `rewrites` in cima a `vercel.json` decidono chi risponde: `/api/*` va al backend, che riceve l'indirizzo completo (es. `/api/products`), quindi le rotte di Express sono le stesse del server locale; tutto il resto va al frontend.
 - Dentro il servizio `frontend`, ogni pagina che non è un file porta a `index.html`, così le pagine di React Router funzionano anche aprendole da un link. I file in `/assets` hanno nomi che cambiano a ogni versione, quindi i browser li tengono in cache per un anno.
 - I servizi non si chiamano tra loro dal server: il frontend è un sito statico, e le chiamate a `/api` partono dal browser verso lo stesso dominio. Per questo non servono *bindings*, e il cookie di sessione funziona senza configurare CORS.
-- Le funzioni girano nella regione `fra1` (Francoforte).
-- Il `package.json` alla radice serve solo a dichiarare `"type": "module"`: Vercel compila il backend in un file `.js` alla radice della funzione, e senza questa riga Node lo leggerebbe come CommonJS ("Cannot use import statement outside a module").
+- Le funzioni girano nella regione `fra1` (Fran- Il backend è un pacchetto **CommonJS** (niente `"type": "module"` in `backend/package.json`): il codice resta scritto con `import`, e la build lo trasforma in `require`. Vercel esegue `npm run build` e mette nella funzione solo i file di `dist/`, senza `package.json` né `node_modules`. Per questo:
+  - la build usa [esbuild](https://esbuild.github.io) per creare `dist/app.js` con dentro tutte le dipendenze (Express, pg, ecc.), dopo aver controllato i tipi con `tsc --noEmit`; altrimenti la funzione si fermava con "Cannot find module 'express'";
+  - Node legge un `.js` senza `package.json` come CommonJS: con i moduli ES la funzione non partiva ("Cannot use import statement outside a module");
+  - `pg-native` resta fuori dal bundle: è facoltativo e il backend non lo usa.
+
+  Gli script in `backend/scripts/` sono file `.mts`, sempre moduli ES, perché usano `await` fuori dalle funzioni. funzioni.
 
 Per provare tutto insieme in locale come su Vercel: `vercel dev` dalla radice del repository (richiede la [CLI di Vercel](https://vercel.com/docs/cli) e il progetto collegato con `vercel link`). Per lo sviluppo di tutti i giorni bastano i due `npm run dev` descritti sopra.
 
