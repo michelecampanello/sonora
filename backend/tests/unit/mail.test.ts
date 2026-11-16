@@ -101,6 +101,7 @@ describe("sendWelcomeEmail e sendOrderConfirmationEmail", () => {
   const order = {
     id: "3f2a9c1e-7a8d-4b5e-9f3a-2c1d0e9f8a7b",
     total: "10.00",
+    payment_method: "cod" as const,
     customer: { name: "Mario Rossi", email: "mario@example.com", address: "Via Roma 1", city: "Milano", postal_code: "20100", province: "MI" },
     items: [{ product_id: "p1", name: "Cavo", quantity: 1, unit_price: "10.00" }],
   };

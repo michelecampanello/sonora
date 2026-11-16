@@ -336,7 +336,7 @@ FROM (VALUES
   (8, 'Francesco', 'Galli',   'francesco.galli@example.com')
 ) AS v(id, first_name, last_name, email);
 
--- Alcuni acquisti già pagati, uno per ordine: chi recensisce un prodotto che ha comprato ha il badge "Acquisto verificato"
+-- Alcuni acquisti già consegnati e pagati alla consegna, uno per ordine: chi recensisce un prodotto che ha comprato ha il badge "Acquisto verificato"
 CREATE TEMP TABLE seed_purchases (id integer, user_id integer, product_id integer, days integer, address text, city text, postal_code text, province text);
 INSERT INTO seed_purchases VALUES
   (1, 1, 1,  60, 'Via Roma 12',           'Milano',  '20121', 'MI'),
@@ -349,8 +349,9 @@ INSERT INTO seed_purchases VALUES
   (8, 2, 15, 30, 'Corso Vittorio Emanuele 40', 'Torino', '10123', 'TO'),
   (9, 8, 4,  28, 'Via Toledo 77',         'Napoli',  '80134', 'NA');
 
-INSERT INTO orders (id, user_id, total, status, customer_name, customer_email, address, city, postal_code, province, created_at)
-SELECT pg_temp.seed_id('order', s.id), u.id, p.price, 'paid', u.first_name || ' ' || u.last_name, u.email,
+INSERT INTO orders (id, user_id, total, status, paid_at, customer_name, customer_email, address, city, postal_code, province, created_at)
+SELECT pg_temp.seed_id('order', s.id), u.id, p.price, 'delivered', now() - s.days * interval '1 day',
+       u.first_name || ' ' || u.last_name, u.email,
        s.address, s.city, s.postal_code, s.province, now() - s.days * interval '1 day'
 FROM seed_purchases s
 JOIN users u ON u.id = pg_temp.seed_id('user', s.user_id)

@@ -1,16 +1,19 @@
-import { useState, type FormEvent } from "react";
-import { Link, Navigate, useNavigate } from "react-router";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router";
+import { CreditCard, Truck } from "lucide-react";
 import { OrderTotals } from "@/components/cart/OrderTotals";
 import { FormField as Field } from "@/components/FormField";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { clearCart, useCartLines } from "@/hooks/useCart";
 import { useFetch } from "@/hooks/useFetch";
-import { addressesPath, ApiError, ordersPath, postJson } from "@/lib/api";
+import { addressesPath, ApiError, cancelPaymentPath, ordersPath, paymentOptionsPath, postJson } from "@/lib/api";
 import { formatPrice, fullName } from "@/lib/format";
-import type { Address, OrderConfirmation, OrderCustomer } from "@/lib/types";
+import { redirectTo } from "@/lib/redirect";
+import type { Address, CardOrderStatus, OrderConfirmation, OrderCustomer, PaymentMethod } from "@/lib/types";
 import { PageMeta } from "@/components/PageMeta";
 
 export function CheckoutPage() {
@@ -22,6 +25,12 @@ export function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<{ message: string; stock: boolean }>();
   const [placed, setPlaced] = useState(false);
+  const { data: paymentOptions } = useFetch<{ card: boolean }>(paymentOptionsPath);
+  const cardAvailable = paymentOptions?.card === true;
+  const [chosenMethod, setChosenMethod] = useState<PaymentMethod>();
+  // La carta è proposta per prima quando c'è; finché non si sa, vale il pagamento alla consegna
+  const paymentMethod: PaymentMethod = chosenMethod ?? (cardAvailable ? "card" : "cod");
+  const returnNotice = useCancelledPayment();
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -41,7 +50,13 @@ export function CheckoutPage() {
           province: field("province"),
         },
         items: lines.map(({ product, quantity }) => ({ productId: product.id, quantity })),
+        payment_method: paymentMethod,
       });
+      if (order.checkout_url) {
+        // Si paga sulla pagina di Stripe. Il carrello resta com'è: si svuota solo quando il pagamento è arrivato
+        redirectTo(order.checkout_url);
+        return;
+      }
       // "placed" evita che, svuotando il carrello, si veda per un attimo il rimando al carrello vuoto
       setPlaced(true);
       clearCart();
@@ -73,6 +88,11 @@ export function CheckoutPage() {
     <div className="flex flex-col gap-6">
       <PageMeta title="Checkout" noindex />
       <h1 className="text-display text-6xl md:text-8xl">Checkout</h1>
+      {returnNotice && (
+        <p role="status" className="border border-signal p-3 text-sm">
+          {returnNotice}
+        </p>
+      )}
       {!user && !authLoading && (
         <p className="text-sm text-muted-foreground">
           Hai un account?{" "}
@@ -141,10 +161,25 @@ export function CheckoutPage() {
             <h2 id="payment-title" className="text-display border-t pt-3 text-3xl">
               Pagamento
             </h2>
-            <p className="rounded-lg border p-3 text-sm">
-              <span className="font-medium">Pagamento alla consegna.</span>{" "}
-              <span className="text-muted-foreground">Paghi il corriere quando ricevi il pacco.</span>
-            </p>
+            {cardAvailable ? (
+              <RadioGroup
+                aria-labelledby="payment-title"
+                value={paymentMethod}
+                onValueChange={(value) => setChosenMethod(value as PaymentMethod)}
+              >
+                <PaymentChoice value="card" icon={<CreditCard aria-hidden />} title="Carta">
+                  Paghi subito sulla pagina sicura di Stripe, anche con Apple Pay o Google Pay.
+                </PaymentChoice>
+                <PaymentChoice value="cod" icon={<Truck aria-hidden />} title="Alla consegna">
+                  Paghi il corriere quando ricevi il pacco.
+                </PaymentChoice>
+              </RadioGroup>
+            ) : (
+              <p className="rounded-lg border p-3 text-sm">
+                <span className="font-medium">Pagamento alla consegna.</span>{" "}
+                <span className="text-muted-foreground">Paghi il corriere quando ricevi il pacco.</span>
+              </p>
+            )}
           </section>
         </form>
 
@@ -175,11 +210,83 @@ export function CheckoutPage() {
             )}
 
             <Button type="submit" form="checkout" size="lg" disabled={submitting}>
-              {submitting ? "Invio dell'ordine…" : "Conferma ordine"}
+              {paymentMethod === "card"
+                ? submitting
+                  ? "Apertura del pagamento…"
+                  : "Vai al pagamento"
+                : submitting
+                  ? "Invio dell'ordine…"
+                  : "Conferma ordine"}
             </Button>
           </CardContent>
         </Card>
       </div>
     </div>
   );
+}
+
+function PaymentChoice({
+  value,
+  icon,
+  title,
+  children,
+}: {
+  value: PaymentMethod;
+  icon: ReactNode;
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm transition-colors has-data-checked:border-primary [&_svg]:size-4">
+      <RadioGroupItem value={value} className="mt-0.5" />
+      <span className="flex flex-col gap-0.5">
+        <span className="flex items-center gap-2 font-medium">
+          {icon}
+          {title}
+        </span>
+        <span className="text-muted-foreground">{children}</span>
+      </span>
+    </label>
+  );
+}
+
+/**
+ * Chi torna da Stripe senza pagare arriva qui con ?pagamento_annullato=<id dell'ordine>.
+ * L'ordine viene annullato subito, così i pezzi tornano in magazzino e si può riprovare.
+ * Restituisce il messaggio da mostrare, o undefined se non si torna da Stripe.
+ */
+function useCancelledPayment(): string | undefined {
+  const navigate = useNavigate();
+  const [params, setParams] = useSearchParams();
+  const orderId = params.get("pagamento_annullato");
+  const [notice, setNotice] = useState<string>();
+  // In sviluppo React esegue gli effetti due volte: l'ordine va annullato una volta sola
+  const handled = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!orderId || handled.current === orderId) return;
+    handled.current = orderId;
+    // Il parametro sparisce dall'indirizzo: ricaricando la pagina non si annulla di nuovo
+    setParams(
+      (prev) => {
+        prev.delete("pagamento_annullato");
+        return prev;
+      },
+      { replace: true },
+    );
+
+    postJson<CardOrderStatus>(cancelPaymentPath(orderId), {})
+      .then((result) => {
+        if (result.paid) {
+          // Il pagamento era già arrivato: l'ordine è valido, si va alla conferma
+          navigate("/ordine-confermato", { replace: true, state: { order: result.order } });
+          clearCart();
+        } else {
+          setNotice("Pagamento annullato: non ti è stato addebitato nulla. Puoi riprovare o scegliere il pagamento alla consegna.");
+        }
+      })
+      .catch(() => setNotice("Pagamento non completato: non ti è stato addebitato nulla. Puoi riprovare."));
+  }, [orderId, setParams, navigate]);
+
+  return notice;
 }

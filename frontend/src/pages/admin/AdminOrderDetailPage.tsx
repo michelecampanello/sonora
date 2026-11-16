@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useParams } from "react-router";
 import { AccountSection, FormError, ListSkeleton, LoadError } from "@/components/account/AccountParts";
 import { OrderStatusBadge } from "@/components/account/OrderStatusBadge";
+import { PaymentInfo } from "@/components/account/PaymentInfo";
 import { OrderTotals } from "@/components/cart/OrderTotals";
 import {
   AlertDialog,
@@ -20,14 +21,19 @@ import { formatDate, formatPrice, orderCode } from "@/lib/format";
 import type { AdminOrderDetail, OrderStatus } from "@/lib/types";
 
 const ACTIONS: Record<OrderStatus, string> = {
-  // Oggi il backend non permette di tornare «in lavorazione»: l'etichetta c'è perché il tipo la richiede
+  // Oggi il backend non permette di tornare a questi due stati: le etichette ci sono perché il tipo le richiede
+  awaiting_payment: "Rimetti in attesa di pagamento",
   pending: "Rimetti in lavorazione",
   shipped: "Segna come spedito",
-  paid: "Segna come consegnato e pagato",
+  delivered: "Segna come consegnato",
   cancelled: "Annulla ordine",
 };
 
-type StatusChange = Pick<AdminOrderDetail, "status" | "next_statuses">;
+/** Con il contrassegno la consegna è anche il momento in cui arrivano i soldi */
+const actionLabel = (next: OrderStatus, order: Pick<AdminOrderDetail, "payment_method">): string =>
+  next === "delivered" && order.payment_method === "cod" ? "Segna come consegnato e pagato" : ACTIONS[next];
+
+type StatusChange = Pick<AdminOrderDetail, "status" | "next_statuses"> & { paid_at?: string | null };
 
 export function AdminOrderDetailPage() {
   const { id = "" } = useParams();
@@ -60,7 +66,9 @@ export function AdminOrderDetailPage() {
     setSaveError(undefined);
     try {
       const { status: saved, next_statuses } = await sendJson<StatusChange>("PATCH", adminOrderStatusPath(order.id), { status });
-      setChanged({ status: saved, next_statuses });
+      // Alla consegna il contrassegno risulta pagato: la data esatta arriva ricaricando l'ordine
+      const paid_at = order.paid_at ?? (saved === "delivered" ? new Date().toISOString() : null);
+      setChanged({ status: saved, next_statuses, paid_at });
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : "Errore imprevisto");
     } finally {
@@ -86,6 +94,7 @@ export function AdminOrderDetailPage() {
                     <AlertDialogTitle>Annullare l'ordine {orderCode(order.id)}?</AlertDialogTitle>
                     <AlertDialogDescription>
                       Gli articoli tornano in magazzino. Un ordine annullato non si può riaprire.
+                      {order.payment_method === "card" && order.paid_at && " Il pagamento con carta viene rimborsato al cliente su Stripe."}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -98,7 +107,7 @@ export function AdminOrderDetailPage() {
               </AlertDialog>
             ) : (
               <Button key={next} disabled={saving} onClick={() => void changeStatus(next)}>
-                {ACTIONS[next]}
+                {actionLabel(next, order)}
               </Button>
             ),
           )}
@@ -132,7 +141,10 @@ export function AdminOrderDetailPage() {
             {customer.email}
           </a>
         </div>
-        <OrderTotals total={order.total} />
+        <div className="flex flex-col gap-6">
+          <PaymentInfo order={order} />
+          <OrderTotals total={order.total} />
+        </div>
       </div>
     </AccountSection>
   );

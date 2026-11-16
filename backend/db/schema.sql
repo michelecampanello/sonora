@@ -151,8 +151,14 @@ CREATE TABLE orders (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id    UUID REFERENCES users(id),   -- NULL = ordine effettuato come ospite
   total      NUMERIC(10, 2) NOT NULL,
+  -- La spedizione: awaiting_payment (carta, cliente su Stripe) → pending → shipped → delivered, oppure cancelled
   status     VARCHAR(20) NOT NULL DEFAULT 'pending'
-             CHECK (status IN ('pending', 'paid', 'shipped', 'cancelled')),
+             CHECK (status IN ('awaiting_payment', 'pending', 'shipped', 'delivered', 'cancelled')),
+  -- Il pagamento: cod = alla consegna, card = carta con Stripe. paid_at è NULL finché non è pagato
+  payment_method VARCHAR(10) NOT NULL DEFAULT 'cod' CHECK (payment_method IN ('cod', 'card')),
+  paid_at        TIMESTAMPTZ,
+  stripe_session_id        TEXT UNIQUE,  -- la sessione di Stripe Checkout, solo per la carta
+  stripe_payment_intent_id TEXT,         -- il pagamento su Stripe, per i rimborsi
   -- Dati di contatto e spedizione copiati nell'ordine: restano corretti anche se il cliente poi li cambia
   customer_name  VARCHAR(100) NOT NULL,
   customer_email VARCHAR(255) NOT NULL,

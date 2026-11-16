@@ -68,6 +68,9 @@ export function productsPath(filters: CatalogFilters): string {
 export const featuredProductsPath = "/api/products?featured=true&inStock=true&limit=6";
 export const productsByIdPath = (ids: string[]) => `/api/products?ids=${ids.join(",")}&limit=50`;
 export const ordersPath = "/api/orders";
+export const paymentOptionsPath = "/api/orders/payment-options";
+export const checkoutResultPath = (sessionId: string) => `/api/orders/checkout/${encodeURIComponent(sessionId)}`;
+export const cancelPaymentPath = (orderId: string) => `/api/orders/${encodeURIComponent(orderId)}/cancel-payment`;
 export const loginPath = "/api/auth/login";
 export const registerPath = "/api/auth/register";
 export const logoutPath = "/api/auth/logout";

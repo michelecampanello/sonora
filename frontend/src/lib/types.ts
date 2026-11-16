@@ -16,8 +16,12 @@ export interface AuthResponse {
   user: User;
 }
 
-export const ORDER_STATUSES = ["pending", "shipped", "paid", "cancelled"] as const;
+/** La spedizione. awaiting_payment: ordine con carta, il cliente è ancora sulla pagina di Stripe */
+export const ORDER_STATUSES = ["awaiting_payment", "pending", "shipped", "delivered", "cancelled"] as const;
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
+
+/** cod: pagamento alla consegna; card: carta con Stripe Checkout */
+export type PaymentMethod = "cod" | "card";
 
 export interface OrderSummary {
   id: string;
@@ -37,6 +41,9 @@ export interface OrderDetailItem {
 }
 
 export interface OrderDetail extends Omit<OrderSummary, "item_count"> {
+  payment_method: PaymentMethod;
+  /** null finché non è pagato: per il contrassegno, fino alla consegna */
+  paid_at: string | null;
   customer: OrderCustomer;
   items: OrderDetailItem[];
 }
@@ -129,8 +136,18 @@ export interface OrderItem {
 export interface OrderConfirmation {
   id: string;
   total: string;
+  payment_method: PaymentMethod;
   customer: OrderCustomer;
   items: OrderItem[];
+  /** Solo per la carta: la pagina di Stripe dove il cliente paga */
+  checkout_url?: string;
+}
+
+/** Un ordine con carta visto dalla pagina di conferma, al ritorno da Stripe */
+export interface CardOrderStatus {
+  order: OrderConfirmation;
+  status: OrderStatus;
+  paid: boolean;
 }
 
 export const SORT_OPTIONS = {

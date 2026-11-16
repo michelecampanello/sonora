@@ -9,6 +9,7 @@ import productsRouter from "./routes/products.js";
 import categoriesRouter from "./routes/categories.js";
 import brandsRouter from "./routes/brands.js";
 import ordersRouter from "./routes/orders.js";
+import { postStripeWebhook } from "./controllers/stripeWebhook.controller.js";
 
 const app = express();
 
@@ -19,6 +20,10 @@ if (process.env.VERCEL) app.set("trust proxy", 1);
 // Permette al frontend di chiamare le API inviando il cookie di sessione: con i cookie
 // l'origine va indicata per esteso, non si può lasciare aperta a tutti.
 app.use(cors({ origin: FRONTEND_ORIGIN, credentials: true }));
+
+// Prima di express.json: le notifiche di Stripe servono così come sono arrivate, per verificarne la firma
+app.post("/api/stripe/webhook", express.raw({ type: "application/json", limit: "1mb" }), postStripeWebhook);
+
 app.use(express.json());  // legge il body JSON delle richieste
 app.use(cookieParser());  // legge il cookie di sessione
 

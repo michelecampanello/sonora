@@ -1,6 +1,7 @@
 import { Link, useParams } from "react-router";
 import { AccountSection, ListSkeleton, LoadError } from "@/components/account/AccountParts";
 import { OrderStatusBadge } from "@/components/account/OrderStatusBadge";
+import { PaymentInfo } from "@/components/account/PaymentInfo";
 import { OrderTotals } from "@/components/cart/OrderTotals";
 import { ProductImage } from "@/components/catalog/ProductImage";
 import { useFetch } from "@/hooks/useFetch";
@@ -72,7 +73,10 @@ export function OrderDetailPage() {
           </p>
           <p className="text-muted-foreground">{customer.email}</p>
         </div>
-        <OrderTotals total={order.total} />
+        <div className="flex flex-col gap-6">
+          <PaymentInfo order={order} />
+          <OrderTotals total={order.total} />
+        </div>
       </div>
     </AccountSection>
   );

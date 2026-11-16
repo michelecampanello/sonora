@@ -86,15 +86,24 @@ export interface OrderItem {
   unit_price: string;
 }
 
+export const PAYMENT_METHODS = ["cod", "card"] as const;
+/** cod: pagamento alla consegna; card: carta con Stripe Checkout */
+export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+
 /** Riepilogo restituito quando un ordine va a buon fine */
 export interface OrderConfirmation {
   id: string;
   total: string;
+  payment_method: PaymentMethod;
   customer: OrderCustomer;
   items: OrderItem[];
 }
 
-export const ORDER_STATUSES = ["pending", "shipped", "paid", "cancelled"] as const;
+/**
+ * La spedizione dell'ordine. awaiting_payment: ordine con carta, il cliente è ancora sulla pagina di Stripe.
+ * Il pagamento è a parte, in paid_at.
+ */
+export const ORDER_STATUSES = ["awaiting_payment", "pending", "shipped", "delivered", "cancelled"] as const;
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
 /** Ordine nell'elenco dell'area personale */
@@ -116,6 +125,9 @@ export interface OrderDetailItem {
 }
 
 export interface OrderDetail extends Omit<OrderSummary, "item_count"> {
+  payment_method: PaymentMethod;
+  /** null finché non è pagato: per il contrassegno, fino alla consegna */
+  paid_at: Date | null;
   customer: OrderCustomer;
   items: OrderDetailItem[];
 }
@@ -164,7 +176,7 @@ export type ProductInput = Omit<AdminProductDetail, "id" | "slug" | "brand" | "c
 
 export interface AdminStats {
   orders: Record<OrderStatus, number>;
-  /** Totale degli ordini pagati: con il pagamento alla consegna, i soldi davvero incassati */
+  /** Totale degli ordini pagati e non annullati: i soldi davvero incassati, con la carta o alla consegna */
   revenue: string;
   activeProducts: number;
   /** Prodotti in vendita con pochi pezzi rimasti (LOW_STOCK_THRESHOLD o meno) */

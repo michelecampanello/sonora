@@ -24,7 +24,8 @@
     "express-rate-limit": "^8.7.4",
     "jsonwebtoken": "^9.0.3",
     "pg": "^8.13.1",
-    "resend": "^6.38.0"
+    "resend": "^6.38.0",
+    "stripe": "^23.1.0"
   },
   "devDependencies": {
     "@types/cookie-parser": "^1.4.10",
