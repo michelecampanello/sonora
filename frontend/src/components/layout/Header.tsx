@@ -55,11 +55,6 @@ export function Header() {
               {link.tag}
             </NavLink>
           ))}
-          {user?.role === "admin" && (
-            <NavLink to="/admin" className={NAV_LINK}>
-              Admin
-            </NavLink>
-          )}
         </nav>
 
         <form

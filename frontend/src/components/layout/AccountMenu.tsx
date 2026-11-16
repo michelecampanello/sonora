@@ -2,6 +2,7 @@ import { useState } from "react"
 import { Link, useLocation, useNavigate } from "react-router"
 import {
   ChevronDown,
+  LayoutDashboard,
   LogOut,
   MapPin,
   Package,
@@ -27,6 +28,7 @@ export const ACCOUNT_LINKS: readonly (readonly [
   label: string,
   icon: LucideIcon,
 ])[] = [
+  ["/admin", "Dashboard", LayoutDashboard],
   ["/account/ordini", "Ordini", Package],
   ["/account/indirizzi", "Indirizzi", MapPin],
   ["/account/impostazioni", "Impostazioni", Settings2],
@@ -40,7 +42,7 @@ function initials(user: UserData): string {
   return (letters || user.email.charAt(0)).toUpperCase()
 }
 
-const ITEM = "gap-3 rounded-none px-3 py-2"
+const ITEM = "gap-3 rounded-none px-3 py-2 cursor-pointer"
 
 /** Il menu a tendina dell'utente collegato, nell'header: le sezioni dell'area personale e l'uscita */
 export function AccountMenu({ user }: { user: UserData }) {
