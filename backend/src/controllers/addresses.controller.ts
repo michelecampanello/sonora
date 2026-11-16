@@ -1,4 +1,4 @@
-import { asyncHandler } from "../asyncHandler.js";
+import { asyncHandler } from "../lib/asyncHandler.js";
 import {
   createAddress,
   deleteAddress,
@@ -8,8 +8,8 @@ import {
   type AddressFields,
 } from "../services/addresses.service.js";
 import { RecordLimitError } from "../services/savedRecords.js";
-import { isUuid } from "../uuid.js";
-import { asRecord, isPersonName, locationError, parseLocation, text } from "../validation.js";
+import { isUuid } from "../lib/uuid.js";
+import { asRecord, isPersonName, locationError, parseLocation, text } from "../lib/validation.js";
 import type { Address, ApiError } from "../types.js";
 
 // Le modifiche rispondono con l'elenco intero: il predefinito può passare a un altro indirizzo.

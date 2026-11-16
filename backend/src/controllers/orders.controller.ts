@@ -1,7 +1,7 @@
-import { asyncHandler } from "../asyncHandler.js";
-import { runAfterResponse } from "../background.js";
-import { isEmail } from "../email.js";
-import { isUuid } from "../uuid.js";
+import { asyncHandler } from "../lib/asyncHandler.js";
+import { runAfterResponse } from "../lib/background.js";
+import { isEmail } from "../lib/email.js";
+import { isUuid } from "../lib/uuid.js";
 import { sendOrderConfirmationEmail } from "../services/mail.service.js";
 import {
   createOrder,
@@ -13,7 +13,7 @@ import {
 } from "../services/orders.service.js";
 import { cancelCardCheckout, startCardCheckout, syncCheckoutSession } from "../services/payments.service.js";
 import { cardPaymentsEnabled, retrieveCheckoutSession } from "../services/stripe.service.js";
-import { isPersonName, isRecord, locationError, parseLocation, text } from "../validation.js";
+import { isPersonName, isRecord, locationError, parseLocation, text } from "../lib/validation.js";
 import {
   PAYMENT_METHODS,
   type ApiError,

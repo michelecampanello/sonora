@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import Stripe from "stripe";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { pool } from "../../src/db.js";
+import { pool } from "../../src/lib/db.js";
 import { sendOrderConfirmationEmail } from "../../src/services/mail.service.js";
 import {
   createCheckoutSession,

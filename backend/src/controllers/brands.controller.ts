@@ -1,5 +1,5 @@
-import { asyncHandler } from "../asyncHandler.js";
-import { isSlug } from "../slug.js";
+import { asyncHandler } from "../lib/asyncHandler.js";
+import { isSlug } from "../lib/slug.js";
 import { findBrandBySlug, listBrands } from "../services/brands.service.js";
 import { listProductsByBrand } from "../services/products.service.js";
 import type { ApiError, Brand, ProductSummary } from "../types.js";

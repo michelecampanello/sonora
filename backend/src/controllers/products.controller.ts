@@ -1,6 +1,6 @@
-import { asyncHandler } from "../asyncHandler.js";
-import { isSlug, parseSlugList } from "../slug.js";
-import { parseUuidList } from "../uuid.js";
+import { asyncHandler } from "../lib/asyncHandler.js";
+import { isSlug, parseSlugList } from "../lib/slug.js";
+import { parseUuidList } from "../lib/uuid.js";
 import {
   findProductBySlug,
   isProductSort,

@@ -1,4 +1,4 @@
-import { pool } from "../db.js";
+import { pool } from "../lib/db.js";
 import type { Paginated, Review, ReviewSummary, ReviewsResponse } from "../types.js";
 
 const REVIEWS_PER_PAGE = 10;

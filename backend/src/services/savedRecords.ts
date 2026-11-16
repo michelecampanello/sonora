@@ -1,6 +1,6 @@
 // Regole per gli indirizzi salvati: un limite per utente e un solo indirizzo predefinito.
 import type { PoolClient } from "pg";
-import { pool } from "../db.js";
+import { pool } from "../lib/db.js";
 
 /** I nomi vengono inseriti nelle query: devono restare costanti scritte nel codice */
 type RecordTable = "addresses";

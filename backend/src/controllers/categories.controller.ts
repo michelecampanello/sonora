@@ -1,4 +1,4 @@
-import { asyncHandler } from "../asyncHandler.js";
+import { asyncHandler } from "../lib/asyncHandler.js";
 import { getCategoryTree } from "../services/categories.service.js";
 import type { Category } from "../types.js";
 

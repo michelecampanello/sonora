@@ -1,5 +1,5 @@
 import Stripe from "stripe";
-import { FRONTEND_ORIGIN } from "../config.js";
+import { FRONTEND_ORIGIN } from "../lib/config.js";
 import type { OrderItem } from "../types.js";
 
 /**

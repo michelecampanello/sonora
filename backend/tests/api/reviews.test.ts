@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pool } from "../../src/db.js";
+import { pool } from "../../src/lib/db.js";
 import { api, createProduct, customer, signedInAgent } from "../helpers.js";
 
 const reviewsOf = (slug: string) => `/api/products/${slug}/reviews`;

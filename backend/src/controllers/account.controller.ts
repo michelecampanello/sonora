@@ -1,9 +1,9 @@
-import { asyncHandler } from "../asyncHandler.js";
-import { isEmail } from "../email.js";
+import { asyncHandler } from "../lib/asyncHandler.js";
+import { isEmail } from "../lib/email.js";
 import { changePassword, EmailTakenError, isCurrentPassword, updateProfile } from "../services/auth.service.js";
 import { findUserOrder, listUserOrders } from "../services/orders.service.js";
-import { isUuid } from "../uuid.js";
-import { asRecord, parsePersonName, passwordError, text } from "../validation.js";
+import { isUuid } from "../lib/uuid.js";
+import { asRecord, parsePersonName, passwordError, text } from "../lib/validation.js";
 import { startSession } from "./auth.controller.js";
 import type { ApiError, AuthResponse, OrderDetail, OrderSummary, Paginated } from "../types.js";
 

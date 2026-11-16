@@ -1,7 +1,7 @@
 import express, { type ErrorRequestHandler, type RequestHandler } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import { FRONTEND_ORIGIN } from "./config.js";
+import { FRONTEND_ORIGIN } from "./lib/config.js";
 import accountRouter from "./routes/account.js";
 import adminRouter from "./routes/admin.js";
 import authRouter from "./routes/auth.js";

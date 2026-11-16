@@ -1,4 +1,4 @@
-import { pool } from "../db.js";
+import { pool } from "../lib/db.js";
 import type { Category, CategoryRow } from "../types.js";
 
 /** Le categorie principali, ognuna con le sue sottocategorie */

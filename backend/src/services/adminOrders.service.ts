@@ -1,4 +1,4 @@
-import { pool } from "../db.js";
+import { pool } from "../lib/db.js";
 import { cancelAndRestock } from "./orders.service.js";
 import { refundPayment } from "./stripe.service.js";
 import type { AdminOrderSummary, AdminStats, OrderStatus, Paginated } from "../types.js";

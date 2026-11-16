@@ -2,9 +2,9 @@ import { randomBytes } from "node:crypto";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import pg from "pg";
-import { pool } from "../db.js";
+import { pool } from "../lib/db.js";
 import type { User } from "../types.js";
-import type { PersonName } from "../validation.js";
+import type { PersonName } from "../lib/validation.js";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET || JWT_SECRET.length < 32) {

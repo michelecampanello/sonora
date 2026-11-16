@@ -1,6 +1,6 @@
-import { pool } from "../db.js";
+import { pool } from "../lib/db.js";
 import type { Address } from "../types.js";
-import type { LocationFields } from "../validation.js";
+import type { LocationFields } from "../lib/validation.js";
 import { deleteRecord, reserveRecordSlot, setDefaultRecord, withUserLock } from "./savedRecords.js";
 
 export interface AddressFields extends LocationFields {

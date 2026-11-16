@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { isEmail } from "../../src/email.js";
-import { isSlug, parseSlugList } from "../../src/slug.js";
-import { isUuid, parseUuidList } from "../../src/uuid.js";
+import { isEmail } from "../../src/lib/email.js";
+import { isSlug, parseSlugList } from "../../src/lib/slug.js";
+import { isUuid, parseUuidList } from "../../src/lib/uuid.js";
 import { isProductSort } from "../../src/services/products.service.js";
-import { isPersonName, locationError, parseLocation, passwordError, text } from "../../src/validation.js";
+import { isPersonName, locationError, parseLocation, passwordError, text } from "../../src/lib/validation.js";
 
 describe("text", () => {
   it("toglie gli spazi ai lati delle stringhe", () => {
