@@ -22,6 +22,8 @@ interface CatalogFiltersProps {
   categoryName: string | undefined
   onChange: (changes: Partial<Filters>) => void
   onReset: () => void
+  /** Comandi da mostrare in fondo alla barra, accanto all'ordinamento (es. la scelta della vista) */
+  actions?: ReactNode
 }
 
 /** Bottone che apre il menu di un filtro, evidenziato quando il filtro è attivo */
@@ -57,6 +59,7 @@ export function CatalogFilters({
   categoryName,
   onChange,
   onReset,
+  actions,
 }: CatalogFiltersProps) {
   const { data: brands } = useFetch<Brand[]>(brandsPath)
   const [priceOpen, setPriceOpen] = useState(false)
@@ -213,11 +216,12 @@ export function CatalogFilters({
           Solo disponibili
         </Label>
 
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-3">
           <SortSelect
             value={filters.sort}
             onChange={(sort) => onChange({ sort })}
           />
+          {actions}
         </div>
       </div>
 

@@ -2,7 +2,10 @@ import { Button } from "@/components/ui/button";
 import { CatalogFilters } from "@/components/catalog/CatalogFilters";
 import { Pagination } from "@/components/catalog/Pagination";
 import { ProductGrid, ProductGridSkeleton } from "@/components/catalog/ProductGrid";
+import { ProductList, ProductListSkeleton } from "@/components/catalog/ProductList";
+import { ViewToggle } from "@/components/catalog/ViewToggle";
 import { useCatalogFilters } from "@/hooks/useCatalogFilters";
+import { useCatalogView } from "@/hooks/useCatalogView";
 import { useFetch } from "@/hooks/useFetch";
 import { categoriesPath, productsPath } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -17,6 +20,7 @@ function catalogHeading(q: string | undefined, categoryName: string | undefined)
 
 export function CatalogPage() {
   const { filters, updateFilters, resetFilters } = useCatalogFilters();
+  const { view, changeView } = useCatalogView();
   const { data, previousData, error, loading } = useFetch<Paginated<ProductSummary>>(
     productsPath(filters)
   );
@@ -54,6 +58,7 @@ export function CatalogPage() {
         categoryName={categoryName}
         onChange={updateFilters}
         onReset={resetFilters}
+        actions={<ViewToggle value={view} onChange={changeView} />}
       />
 
       {error ? (
@@ -62,7 +67,11 @@ export function CatalogPage() {
           <p className="text-sm text-muted-foreground">{error}</p>
         </div>
       ) : !result ? (
-        <ProductGridSkeleton wide count={8} />
+        view === "list" ? (
+          <ProductListSkeleton count={8} />
+        ) : (
+          <ProductGridSkeleton wide count={8} />
+        )
       ) : result.items.length === 0 ? (
         <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed p-10 text-center">
           <p className="font-medium">Nessun prodotto corrisponde ai filtri scelti.</p>
@@ -72,7 +81,11 @@ export function CatalogPage() {
         </div>
       ) : (
         <div className={cn("flex flex-col gap-8 transition-opacity", loading && "opacity-60")} aria-busy={loading}>
-          <ProductGrid wide products={result.items} />
+          {view === "list" ? (
+            <ProductList products={result.items} />
+          ) : (
+            <ProductGrid wide products={result.items} />
+          )}
           <Pagination page={result.page} pages={result.pages} onChange={changePage} />
         </div>
       )}
