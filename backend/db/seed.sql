@@ -50,6 +50,16 @@ FROM (VALUES
   (28, 'Custodie e borse',          'custodie',               'Per trasportare e proteggere i tuoi strumenti.',                4, 6)
 ) AS v(id, name, slug, description, sort_order, parent_id);
 
+-- Seconda espansione: quattro nuove sottocategorie
+INSERT INTO categories (id, name, slug, description, sort_order, parent_id)
+SELECT pg_temp.seed_id('category', id), name, slug, description, sort_order, pg_temp.seed_id('category', parent_id)
+FROM (VALUES
+  (29, 'Ukulele',          'ukulele',         'Soprano, concerto e tenore: piccoli, leggeri e facili da iniziare.', 4, 1),
+  (30, 'Controller MIDI',  'controller-midi', 'Tastiere e pad per suonare gli strumenti virtuali del computer.',    3, 4),
+  (31, 'Mixer',            'mixer',           'Analogici e digitali, per le prove, il palco e lo streaming.',       5, 5),
+  (32, 'Supporti e stand', 'supporti-stand',  'Stand per chitarre e tastiere, aste per microfono e leggii.',        5, 6)
+) AS v(id, name, slug, description, sort_order, parent_id);
+
 -- Dettagli categorie: descrizione e ordine di visualizzazione
 UPDATE categories c SET description = v.description, sort_order = v.sort_order
 FROM (VALUES
@@ -86,6 +96,13 @@ FROM (VALUES
   (6, 'Stradivolt'),
   (7, 'Altavia'),
   (8, 'Orfeo Amplification')
+) AS v(id, name);
+
+INSERT INTO brands (id, name)
+SELECT pg_temp.seed_id('brand', id), name
+FROM (VALUES
+  (9,  'Girasole'),
+  (10, 'Fermata')
 ) AS v(id, name);
 
 INSERT INTO products (id, sku, name, description, price, stock, category_id, brand_id)
@@ -194,6 +211,76 @@ FROM (VALUES
   -- Il nome lungo serve a verificare che le card del catalogo non si deformino
   (91, 'SON-0091', 'Altavia Borsa Bacchette Professionale con Scomparti Multipli e Tracolla Imbottita',
                                                  'Borsa per bacchette e piccoli accessori da batteria, con scomparti multipli e tracolla imbottita. Tiene in ordine bacchette, spazzole, chiave di accordatura e ricambi. Si porta a spalla o si aggancia al timpano della batteria per avere tutto a portata di mano.', 34.90, 30, 28, 7)
+) AS v(id, sku, name, description, price, stock, category_id, brand_id);
+
+-- Seconda espansione: le quattro nuove sottocategorie (ukulele, controller MIDI, mixer, supporti)
+-- e altri due prodotti in ognuna di quelle esistenti, che arrivano così ad almeno 6
+INSERT INTO products (id, sku, name, description, price, stock, category_id, brand_id)
+SELECT pg_temp.seed_id('product', id), sku, name, description, price, stock, pg_temp.seed_id('category', category_id), pg_temp.seed_id('brand', brand_id)
+FROM (VALUES
+  (92,  'SON-0092', 'Aurora Baritono B6',           'Chitarra elettrica baritona a sei corde, con scala lunga e accordatura più grave di una quarta. Il suono è profondo e ampio, a metà strada tra chitarra e basso, perfetto per colonne sonore, surf e metal moderno. I due humbucker mantengono le note definite anche sulle corde più basse.', 629.00, 3, 7, 2),
+  (93,  'SON-0093', 'Stradivolt Comet Offset',      'Elettrica dal corpo asimmetrico con due single coil a bobina larga, dal suono corposo e un po'' ruvido. È molto amata nell''indie e nel rock alternativo, e resta comoda sia in piedi sia da seduti. Il ponte con leva permette vibrati morbidi e leggeri.', 479.00, 6, 7, 6),
+  (94,  'SON-0094', 'Nordwood Jumbo J-30',          'Acustica jumbo dal corpo grande, con top in abete massello e fondo in acero. Ha un volume imponente e bassi pieni, ideali per accompagnare la voce con accordi aperti. Una chitarra da palco che si fa sentire anche senza amplificazione.', 519.00, 4, 8, 1),
+  (95,  'SON-0095', 'Aurora Concert Mahogany',      'Acustica formato concert interamente in mogano, dal suono caldo, asciutto e ricco di medi. Il corpo più piccolo di una dreadnought la rende comoda e molto equilibrata nel fingerpicking. Rende bene anche in registrazione, dove non servono bassi eccessivi.', 369.00, 7, 8, 2),
+  (96,  'SON-0096', 'Vesuvio Elettrificata CE-60',  'Chitarra classica con spalla mancante e preamplificatore con accordatore integrato. Si collega direttamente all''impianto mantenendo il suono morbido delle corde in nylon. Pensata per chi suona bossa nova, pop e musica latina dal vivo.', 329.00, 8, 9, 4),
+  (97,  'SON-0097', 'Vesuvio Studio 4/4',           'Chitarra classica da studio in formato intero, per ragazzi dai 12 anni in su e per adulti. Ha il top in abete e un manico regolare, comodo per imparare le prime posizioni. Completa la serie Studio insieme ai formati 1/2 e 3/4.', 129.00, 27, 9, 4),
+  (98,  'SON-0098', 'Nordwood JB Deluxe',           'Basso a 4 corde con due pickup single coil e manico sottile, veloce e comodo. Miscelando i due pickup si passa da un suono rotondo a uno nasale e graffiante, ottimo per funk e slap. Un tuttofare che trova posto in qualsiasi genere.', 469.00, 6, 10, 1),
+  (99,  'SON-0099', 'Stradivolt Shorty 30',         'Basso elettrico a scala corta da 30 pollici, leggero e maneggevole. Le distanze ridotte tra i tasti aiutano chi inizia, chi ha mani piccole e i chitarristi che passano al basso. Il suono è caldo e pieno, con un carattere un po'' vintage.', 289.00, 10, 10, 6),
+  (100, 'SON-0100', 'Girasole Ukulele Basso',       'Ukulele basso con corde in gomma dal suono sorprendentemente profondo, simile a un contrabbasso. È lungo poco più di un ukulele baritono e si porta ovunque, in uno zaino. Il preamplificatore integrato permette di collegarlo a un amplificatore o all''impianto.', 219.00, 5, 20, 9),
+  (101, 'SON-0101', 'Nordwood Jumbo Bass Cutaway',  'Basso acustico dal corpo jumbo con spalla mancante e preamplificatore. La cassa grande dà più volume degli altri bassi acustici, utile quando si suona senza amplificazione. La spalla mancante facilita l''accesso ai tasti più alti.', 429.00, 3, 20, 1),
+  (102, 'SON-0102', 'Kestrel Maple Studio 4 pezzi', 'Batteria acustica a quattro pezzi con fusti in acero, dal suono caldo, rotondo e ricco di armonici. È pensata per lo studio di registrazione e per i batteristi più esigenti. Vengono forniti solo i fusti: piatti e hardware si scelgono a parte.', 1190.00, 1, 11, 3),
+  (103, 'SON-0103', 'Kestrel Cocktail Compact',     'Batteria compatta a quattro pezzi con cassa da 16 pollici, pensata per palchi piccoli e appartamenti. Si smonta in fretta e sta nel bagagliaio di un''utilitaria, e nonostante le dimensioni ha un suono pieno, adatto a pop, jazz e serate acustiche. I piatti non sono inclusi.', 459.00, 5, 11, 3),
+  (104, 'SON-0104', 'Kestrel Pad Multi 8',          'Multipad elettronico con otto superfici sensibili alla dinamica e 300 suoni di percussioni. Si suona con le bacchette, da solo o accanto a una batteria acustica per aggiungere suoni elettronici. Si possono caricare anche campioni propri tramite USB.', 279.00, 8, 12, 3),
+  (105, 'SON-0105', 'Kestrel Hybrid E-Kit 11',      'Batteria elettronica con fusti in legno a grandezza naturale, pelli in mesh e 900 suoni. Dal palco sembra una batteria acustica, ma offre tutti i vantaggi dell''elettronica: volume controllato e suoni sempre pronti. Il modello di punta della gamma elettronica Kestrel.', 1890.00, 1, 12, 3),
+  (106, 'SON-0106', 'Kestrel China 18 Bronze',      'China da 18 pollici in bronzo B20, dal suono tagliente, esotico e aggressivo. Serve per accenti forti e passaggi che devono farsi notare, soprattutto in rock e metal. Si monta di solito capovolto, per colpirlo più comodamente sul bordo.', 189.00, 4, 21, 3),
+  (107, 'SON-0107', 'Kestrel Set Piatti Brass',     'Set di piatti in ottone composto da hi-hat da 14 pollici, crash da 16 e ride da 20, con borsa inclusa. Contiene tutti i piatti necessari per completare una batteria venduta senza. Una soluzione economica per iniziare, da migliorare un pezzo alla volta.', 199.00, 10, 21, 3),
+  (108, 'SON-0108', 'Altavia Tamburello 10',        'Tamburello da 10 pollici con cornice in legno, pelle naturale e doppia fila di sonagli. Si suona con la mano o scuotendolo, per accompagnare canzoni, musica popolare e cori. Uno strumento semplice e immediato, adatto anche ai bambini.', 24.90, 32, 22, 7),
+  (109, 'SON-0109', 'Altavia Congas Duo',           'Coppia di congas da 10 e 11 pollici in legno, con supporto regolabile incluso. Hanno un suono caldo e profondo, con toni aperti ben distinti dagli slap. Sono la base ritmica di salsa, musica latina e di molte formazioni acustiche.', 349.00, 2, 22, 7),
+  (110, 'SON-0110', 'Aurora Slim 88',               'Pianoforte digitale portatile con 88 tasti pesati e profondità di soli 23 centimetri. Si appoggia su una scrivania o su uno stand e si ripone facilmente quando non serve. Il Bluetooth permette di suonare sopra le basi riprodotte dal telefono.', 549.00, 9, 13, 2),
+  (111, 'SON-0111', 'Aurora Mini Coda 88',          'Pianoforte digitale con mobile a mezza coda e finitura nera lucida, per chi vuole anche un bell''oggetto d''arredo. Gli 88 tasti in legno con meccanica a martelletti restituiscono un tocco molto vicino a quello di un acustico. Il sistema a sei altoparlanti riempie la stanza con un suono ampio e avvolgente.', 2490.00, 1, 13, 2),
+  (112, 'SON-0112', 'Pulse Drum Machine 16',        'Drum machine analogica con sequencer a 16 passi e otto voci di batteria sintetizzate. Cassa, rullante e charleston si programmano accendendo i tasti, in modo immediato e visivo. Si sincronizza con sintetizzatori e computer tramite MIDI e USB.', 329.00, 6, 14, 5),
+  (113, 'SON-0113', 'Pulse Modular Starter',        'Sintetizzatore semi-modulare con 20 punti di connessione e cavetti inclusi. Suona già senza collegare nulla, ma ogni cavo aggiunto apre percorsi nuovi e suoni imprevisti. Il modo più semplice per avvicinarsi al mondo dei sintetizzatori modulari.', 449.00, 0, 14, 5),
+  (114, 'SON-0114', 'Pulse Stream Mix',             'Interfaccia audio per streaming con due ingressi e funzione loopback, alla risoluzione di 24 bit / 96 kHz. Il loopback unisce microfono e audio del computer in un unico segnale, pronto per dirette e registrazioni. Ha un tasto mute sul pannello, comodo durante le trasmissioni.', 179.00, 13, 15, 5),
+  (115, 'SON-0115', 'Pulse Mobile One',             'Interfaccia audio tascabile per smartphone e tablet, con un ingresso per chitarra o microfono. Si alimenta direttamente dal dispositivo e non ha bisogno di driver. Utile per registrare idee, video e lezioni ovunque ci si trovi.', 69.00, 24, 15, 5),
+  (116, 'SON-0116', 'Pulse Ribbon R2',              'Microfono a nastro dal suono morbido e naturale, con diagramma polare a figura di otto. Addolcisce le sorgenti più aspre, come amplificatori per chitarra, fiati e piatti. È uno strumento delicato: va protetto dai colpi d''aria e riposto con cura.', 289.00, 3, 16, 5),
+  (117, 'SON-0117', 'Pulse Pencil Pair',            'Coppia di microfoni a condensatore a diaframma piccolo, selezionati per la ripresa stereo. Sono indicati per chitarra acustica, pianoforte, cori e panoramici della batteria. Nella confezione ci sono la barra stereo, le clip e le protezioni antivento.', 199.00, 7, 16, 5),
+  (118, 'SON-0118', 'Pulse In-Ear M2',              'Auricolari in-ear a doppio driver per l''ascolto sul palco. Isolano dal rumore esterno e permettono di sentirsi bene a volume più basso, proteggendo l''udito. Il cavo è staccabile e si sostituisce facilmente in caso di usura.', 89.00, 16, 17, 5),
+  (119, 'SON-0119', 'Pulse Monitor H20',            'Cuffie chiuse economiche per studiare con strumenti digitali, tastiere e batterie elettroniche. Sono leggere e hanno un cavo lungo tre metri, comodo per muoversi intorno allo strumento. La scelta più semplice per chi cerca un primo paio di cuffie.', 39.00, 45, 17, 5),
+  (120, 'SON-0120', 'Pulse Reference M6 Coax',      'Monitor attivo coassiale da 6,5 pollici, con il tweeter montato al centro del woofer. Il suono parte da un unico punto e l''immagine stereo resta precisa anche spostandosi dalla posizione ideale. Venduto singolarmente, è adatto a studi di dimensioni medie.', 329.00, 4, 23, 5),
+  (121, 'SON-0121', 'Pulse Desk Controller',        'Controller passivo da scrivania per monitor da studio, con una grande manopola del volume. Permette di abbassare, silenziare o passare da una coppia di casse all''altra senza toccare il computer. Non richiede alimentazione e non colora il suono.', 79.00, 12, 23, 5),
+  (122, 'SON-0122', 'Orfeo Acustico 60',            'Amplificatore da 60 watt per chitarra acustica e voce, con due canali indipendenti. Ogni canale ha il proprio equalizzatore e un riverbero, così chitarra e microfono si regolano separatamente. Basta da solo per serate in locali piccoli e per suonare in strada.', 329.00, 5, 25, 8),
+  (123, 'SON-0123', 'Stradivolt Blaze 40 Modeling', 'Combo digitale da 40 watt che simula dodici amplificatori diversi, dai puliti cristallini alle distorsioni moderne. Ha effetti integrati, accordatore e collegamento USB per registrare direttamente sul computer. Molti suoni in un solo amplificatore, per chi vuole sperimentare.', 239.00, 9, 25, 6),
+  (124, 'SON-0124', 'Orfeo Testata Basso 500',      'Testata per basso da 500 watt in classe D, che pesa meno di tre chili. Ha un equalizzatore a quattro bande, un compressore e l''uscita DI per il mixer. Va collegata a una cassa passiva, come la Orfeo Cassa Basso 4x10.', 449.00, 3, 26, 8),
+  (125, 'SON-0125', 'Orfeo Cassa Basso 4x10',       'Cassa passiva per basso con quattro coni da 10 pollici e tromba per gli alti. Regge fino a 600 watt e offre un suono veloce, definito e con molto impatto. Richiede una testata separata.', 399.00, 2, 26, 8),
+  (126, 'SON-0126', 'Stradivolt Corde 9-42',        'Muta di corde per chitarra elettrica in acciaio nichelato, scalatura 9-42. Sono più sottili e morbide delle 10-46, quindi facilitano bending e vibrati. Adatte a chi inizia e a chi preferisce un tocco leggero.', 7.90, 140, 18, 6),
+  (127, 'SON-0127', 'Girasole Corde Ukulele',       'Muta di corde in fluorocarbonio per ukulele soprano e concerto. Hanno un suono brillante e tengono bene l''accordatura dopo i primi giorni di assestamento. Si montano con l''accordatura standard Sol-Do-Mi-La.', 6.90, 70, 18, 9),
+  (128, 'SON-0128', 'Pulse Cavo MIDI 2 m',          'Cavo MIDI a cinque poli lungo 2 metri, per collegare tastiere, sintetizzatori e drum machine. Trasmette note e sincronizzazione tra gli strumenti, non il segnale audio. Indispensabile per gli strumenti senza porta USB.', 9.90, 35, 19, 5),
+  (129, 'SON-0129', 'Altavia Cavo Speaker 150 cm',  'Cavo di potenza lungo 150 cm con connettori jack, per collegare una testata alla sua cassa. Non è schermato e ha conduttori di sezione maggiore: non va confuso con un normale cavo per strumenti. Usare il cavo giusto protegge l''amplificatore.', 16.90, 22, 19, 7),
+  (130, 'SON-0130', 'Orfeo Chorus Onda',            'Pedale chorus analogico dal suono liquido e avvolgente. Con poca profondità allarga il suono pulito, con molta produce il tipico tremolio degli anni Ottanta. Funziona bene anche con il basso e con le tastiere.', 89.00, 11, 27, 8),
+  (131, 'SON-0131', 'Stradivolt Compressor Blue',   'Pedale compressore analogico che uniforma il volume delle note e allunga il sustain. Rende più regolari arpeggi e ritmiche funk, e dà più corpo ai soli sul pulito. Va usato con moderazione: se è troppo spinto aumenta il rumore di fondo.', 69.00, 15, 27, 6),
+  (132, 'SON-0132', 'Altavia Borsa Tastiera 61',    'Borsa imbottita per tastiere a 61 tasti, con maniglie e tracolla. Ha una tasca esterna ampia per alimentatore, pedale e spartiti. Protegge lo strumento negli spostamenti tra casa, lezioni e prove.', 44.90, 12, 28, 7),
+  (133, 'SON-0133', 'Altavia Custodia Rigida Acustica', 'Custodia rigida per chitarra acustica dreadnought, con interno in peluche e chiusure a scatto. Protegge lo strumento da urti e sbalzi di umidità molto meglio di una borsa morbida. All''interno c''è un vano per plettri, capotasto e corde di ricambio.', 99.00, 6, 28, 7),
+  -- Ukulele
+  (134, 'SON-0134', 'Girasole Soprano Mogano',      'Ukulele soprano in mogano, il formato più piccolo e tradizionale. Ha il suono allegro e squillante che tutti associano all''ukulele. Con quattro corde e pochi accordi semplici si suonano subito tantissime canzoni.', 59.00, 34, 29, 9),
+  (135, 'SON-0135', 'Girasole Concerto Koa',        'Ukulele concerto con top in koa, il legno hawaiano della tradizione. È un po'' più grande del soprano: ha più volume, più sustain e tasti più comodi per le mani adulte. La venatura del koa rende ogni strumento diverso dagli altri.', 129.00, 12, 29, 9),
+  (136, 'SON-0136', 'Girasole Tenore Elettrificato','Ukulele tenore con spalla mancante, preamplificatore e accordatore integrato. Il corpo più grande dà un suono pieno e profondo, adatto anche alle parti soliste. Si collega all''impianto per suonare dal vivo.', 189.00, 6, 29, 9),
+  (137, 'SON-0137', 'Girasole Soprano Arcobaleno',  'Ukulele soprano dalla finitura colorata, pensato per i bambini. È robusto, leggero e ha corde morbide che non fanno male alle dita. Un primo strumento allegro per avvicinarsi alla musica giocando.', 34.90, 50, 29, 9),
+  -- Controller MIDI
+  (138, 'SON-0138', 'Pulse Keys 25 Mini',           'Controller MIDI con 25 mini tasti, otto pad e otto manopole assegnabili. Si collega via USB e sta nello zaino insieme al portatile. Ideale per comporre in viaggio e per chi ha poco spazio sulla scrivania.', 79.00, 26, 30, 5),
+  (139, 'SON-0139', 'Pulse Keys 49',                'Controller MIDI con 49 tasti di dimensione standard sensibili alla dinamica. Ha le rotelle di pitch e modulazione e i comandi per controllare la registrazione dal software. Quattro ottave bastano per suonare con due mani la maggior parte delle parti.', 149.00, 11, 30, 5),
+  (140, 'SON-0140', 'Pulse Pad 16',                 'Controller con 16 pad retroilluminati sensibili alla pressione, per suonare batterie e campioni. I pad cambiano colore per distinguere a colpo d''occhio i suoni assegnati. Molto usato per hip hop, musica elettronica e finger drumming.', 119.00, 9, 30, 5),
+  (141, 'SON-0141', 'Aurora Master 88',             'Master keyboard con 88 tasti pesati a martelletti, senza suoni interni. Si collega al computer o a un modulo sonoro e ne controlla gli strumenti con il tocco di un pianoforte. Per pianisti che usano strumenti virtuali in studio o dal vivo.', 599.00, 2, 30, 2),
+  -- Supporti e stand
+  (142, 'SON-0142', 'Fermata Stand Chitarra A',     'Supporto pieghevole a cavalletto per chitarra elettrica, acustica o classica. Le imbottiture in gomma proteggono la vernice e i piedini non scivolano sul pavimento. Chiuso occupa pochissimo spazio e sta nella tasca di una borsa.', 14.90, 60, 32, 10),
+  (143, 'SON-0143', 'Fermata Stand Tastiera X',     'Supporto a X per tastiere e pianoforti digitali, regolabile in cinque altezze. La doppia struttura regge strumenti fino a 50 chili. Si chiude in pochi secondi per il trasporto.', 29.90, 25, 32, 10),
+  (144, 'SON-0144', 'Fermata Asta Microfono Giraffa', 'Asta per microfono con braccio a giraffa e base a treppiede. Il braccio regolabile permette di posizionare il microfono davanti alla voce, a un amplificatore o sopra una batteria. La clip per il microfono è inclusa.', 34.90, 30, 32, 10),
+  (145, 'SON-0145', 'Fermata Leggio Orchestra',     'Leggio con piano forato in metallo, stabile e regolabile in altezza e inclinazione. Regge senza problemi anche i libri di spartiti più pesanti. È il modello che si trova nelle scuole di musica e nelle orchestre.', 39.00, 18, 32, 10),
+  (146, 'SON-0146', 'Fermata Stand Triplo Chitarre','Supporto per tre chitarre o bassi, con appoggi imbottiti. Tiene in ordine gli strumenti in sala prove o sul palco, sempre a portata di mano. Si ripiega per il trasporto.', 44.90, 0, 32, 10),
+  -- Mixer
+  (147, 'SON-0147', 'Pulse Mix 6',                  'Mixer analogico a sei canali con due ingressi microfonici e alimentazione phantom. Ogni canale ha il proprio equalizzatore a tre bande. Adatto a duo acustici, piccole feste e sale prove.', 119.00, 10, 31, 5),
+  (148, 'SON-0148', 'Pulse Mix 12 FX',              'Mixer a dodici canali con effetti integrati e interfaccia USB. Riverberi e delay si aggiungono alle voci senza apparecchi esterni, e l''uscita USB registra il mix sul computer. Pensato per band che gestiscono da sole il proprio suono dal vivo.', 289.00, 5, 31, 5),
+  (149, 'SON-0149', 'Pulse Digital Mix 16',         'Mixer digitale a sedici canali, controllabile a distanza da tablet tramite Wi-Fi. Le scene memorizzano tutte le regolazioni e si richiamano con un tocco, concerto dopo concerto. Ogni canale dispone di compressore, equalizzatore parametrico ed effetti.', 899.00, 2, 31, 5),
+  (150, 'SON-0150', 'Pulse Mix Pocket 4',           'Mini mixer a quattro canali alimentato a batterie o via USB. Serve per unire più tastiere, lettori o strumenti elettronici in una sola uscita. Piccolo come una mano, sta in qualsiasi borsa.', 59.00, 14, 31, 5)
 ) AS v(id, sku, name, description, price, stock, category_id, brand_id);
 
 -- Prodotto nascosto: serve a provare che non compaia nel negozio
@@ -314,6 +401,70 @@ FROM (VALUES
   (91, 'Compatibilità', 'Bacchette e accessori'), (91, 'Tracolla', 'Inclusa')
 ) AS v(product_id, label, value);
 
+INSERT INTO product_specs (product_id, label, value)
+SELECT pg_temp.seed_id('product', product_id), label, value
+FROM (VALUES
+  (92, 'Corde', '6'), (92, 'Scala', 'Baritona'), (92, 'Pickup', '2 humbucker'),
+  (93, 'Corde', '6'), (93, 'Pickup', '2 single coil a bobina larga'), (93, 'Ponte', 'Con leva'),
+  (94, 'Corde', '6'), (94, 'Forma', 'Jumbo'), (94, 'Top', 'Abete massello'),
+  (95, 'Corde', '6'), (95, 'Forma', 'Concert'), (95, 'Corpo', 'Mogano'),
+  (96, 'Corde', '6 (nylon)'), (96, 'Forma', 'Con cutaway'), (96, 'Elettronica', 'Preamplificatore con accordatore'),
+  (97, 'Corde', '6 (nylon)'), (97, 'Formato', '4/4'), (97, 'Top', 'Abete'),
+  (98, 'Corde', '4'), (98, 'Pickup', '2 single coil'), (98, 'Elettronica', 'Passiva'),
+  (99, 'Corde', '4'), (99, 'Scala', 'Corta (30")'),
+  (100, 'Corde', '4 (gomma)'), (100, 'Elettronica', 'Preamplificatore integrato'),
+  (101, 'Corde', '4'), (101, 'Forma', 'Jumbo con cutaway'), (101, 'Elettronica', 'Preamplificatore'),
+  (102, 'Pezzi', '4'), (102, 'Fusti', 'Acero'), (102, 'Piatti inclusi', 'No'),
+  (103, 'Pezzi', '4'), (103, 'Cassa', '16"'), (103, 'Piatti inclusi', 'No'),
+  (104, 'Pad', '8'), (104, 'Suoni', '300'), (104, 'Connessione', 'USB'),
+  (105, 'Pelli', 'Mesh'), (105, 'Suoni', '900'), (105, 'Fusti', 'Legno'),
+  (106, 'Diametro', '18"'), (106, 'Lega', 'Bronzo B20'),
+  (107, 'Lega', 'Ottone'), (107, 'Pezzi', 'Hi-hat 14", crash 16", ride 20"'), (107, 'Borsa', 'Inclusa'),
+  (108, 'Diametro', '10"'), (108, 'Pelle', 'Naturale'), (108, 'Sonagli', 'Doppia fila'),
+  (109, 'Diametri', '10" e 11"'), (109, 'Materiale', 'Legno'), (109, 'Supporto', 'Incluso'),
+  (110, 'Tasti', '88 pesati'), (110, 'Connessione', 'Bluetooth'), (110, 'Profondità', '23 cm'),
+  (111, 'Tasti', '88 in legno'), (111, 'Mobile', 'Mezza coda'), (111, 'Altoparlanti', '6'),
+  (112, 'Tipo', 'Drum machine analogica'), (112, 'Sequencer', '16 passi'), (112, 'Voci', '8'),
+  (113, 'Tipo', 'Semi-modulare'), (113, 'Punti di connessione', '20'),
+  (114, 'Ingressi', '2'), (114, 'Risoluzione', '24 bit / 96 kHz'), (114, 'Loopback', 'Sì'),
+  (115, 'Ingressi', '1'), (115, 'Compatibilità', 'Smartphone e tablet'),
+  (116, 'Tipo', 'Nastro'), (116, 'Diagramma polare', 'Figura di otto'),
+  (117, 'Tipo', 'Condensatore a diaframma piccolo'), (117, 'Confezione', 'Coppia'),
+  (118, 'Tipo', 'In-ear'), (118, 'Driver', '2'), (118, 'Cavo', 'Staccabile'),
+  (119, 'Tipo', 'Chiuse'), (119, 'Cavo', '3 m'),
+  (120, 'Woofer', '6,5"'), (120, 'Tipo', 'Attivo coassiale'),
+  (121, 'Tipo', 'Controller passivo'), (121, 'Alimentazione', 'Non richiesta'),
+  (122, 'Potenza', '60 W'), (122, 'Canali', '2'), (122, 'Riverbero', 'Sì'),
+  (123, 'Potenza', '40 W'), (123, 'Tecnologia', 'Digitale'), (123, 'Simulazioni', '12'),
+  (124, 'Potenza', '500 W'), (124, 'Tecnologia', 'Classe D'), (124, 'Uscita DI', 'Sì'),
+  (125, 'Coni', '4 x 10"'), (125, 'Potenza massima', '600 W'), (125, 'Tipo', 'Passiva'),
+  (126, 'Scalatura', '9-42'), (126, 'Materiale', 'Acciaio nichelato'),
+  (127, 'Materiale', 'Fluorocarbonio'), (127, 'Compatibilità', 'Ukulele soprano e concerto'),
+  (128, 'Lunghezza', '2 m'), (128, 'Connettori', 'MIDI a 5 poli'),
+  (129, 'Lunghezza', '150 cm'), (129, 'Connettori', 'Jack 6,3 mm'),
+  (130, 'Effetto', 'Chorus'), (130, 'Circuito', 'Analogico'),
+  (131, 'Effetto', 'Compressore'), (131, 'Circuito', 'Analogico'),
+  (132, 'Compatibilità', 'Tastiere a 61 tasti'), (132, 'Tracolla', 'Inclusa'),
+  (133, 'Compatibilità', 'Chitarra acustica dreadnought'), (133, 'Tipo', 'Rigida'),
+  (134, 'Corde', '4'), (134, 'Formato', 'Soprano'), (134, 'Corpo', 'Mogano'),
+  (135, 'Corde', '4'), (135, 'Formato', 'Concerto'), (135, 'Top', 'Koa'),
+  (136, 'Corde', '4'), (136, 'Formato', 'Tenore'), (136, 'Elettronica', 'Preamplificatore con accordatore'),
+  (137, 'Corde', '4'), (137, 'Formato', 'Soprano'),
+  (138, 'Tasti', '25 mini'), (138, 'Pad', '8'), (138, 'Connessione', 'USB'),
+  (139, 'Tasti', '49'), (139, 'Connessione', 'USB'),
+  (140, 'Pad', '16'), (140, 'Connessione', 'USB'),
+  (141, 'Tasti', '88 pesati'), (141, 'Suoni interni', 'No'), (141, 'Connessione', 'USB e MIDI'),
+  (142, 'Compatibilità', 'Chitarra elettrica, acustica e classica'), (142, 'Pieghevole', 'Sì'),
+  (143, 'Compatibilità', 'Tastiere e pianoforti digitali'), (143, 'Portata', '50 kg'), (143, 'Altezze', '5'),
+  (144, 'Base', 'Treppiede'), (144, 'Braccio', 'Giraffa regolabile'),
+  (145, 'Materiale', 'Metallo'), (145, 'Regolazione', 'Altezza e inclinazione'),
+  (146, 'Posti', '3'), (146, 'Pieghevole', 'Sì'),
+  (147, 'Canali', '6'), (147, 'Ingressi microfonici', '2'), (147, 'Tipo', 'Analogico'),
+  (148, 'Canali', '12'), (148, 'Effetti', 'Integrati'), (148, 'Connessione', 'USB'),
+  (149, 'Canali', '16'), (149, 'Tipo', 'Digitale'), (149, 'Controllo remoto', 'Wi-Fi'),
+  (150, 'Canali', '4'), (150, 'Alimentazione', 'Batterie o USB')
+) AS v(product_id, label, value);
+
 -- Una copertina per ogni prodotto
 INSERT INTO product_images (product_id, url, alt, sort_order)
 SELECT id, pg_temp.seed_image('prodotti', slug), 'Illustrazione di ' || name, 0
@@ -333,7 +484,13 @@ FROM (VALUES
   (5, 'Chiara',   'Esposito', 'chiara.esposito@example.com'),
   (6, 'Davide',   'Fontana',  'davide.fontana@example.com'),
   (7, 'Elena',    'Moretti',  'elena.moretti@example.com'),
-  (8, 'Francesco', 'Galli',   'francesco.galli@example.com')
+  (8, 'Francesco', 'Galli',   'francesco.galli@example.com'),
+  (9,  'Alessandro', 'Conti',   'alessandro.conti@example.com'),
+  (10, 'Martina',  'Greco',     'martina.greco@example.com'),
+  (11, 'Paolo',    'Marchetti', 'paolo.marchetti@example.com'),
+  (12, 'Federica', 'Lombardi',  'federica.lombardi@example.com'),
+  (13, 'Simone',   'De Luca',   'simone.deluca@example.com'),
+  (14, 'Valentina', 'Rinaldi',  'valentina.rinaldi@example.com')
 ) AS v(id, first_name, last_name, email);
 
 -- Alcuni acquisti già consegnati e pagati alla consegna, uno per ordine: chi recensisce un prodotto che ha comprato ha il badge "Acquisto verificato"
@@ -347,7 +504,19 @@ INSERT INTO seed_purchases VALUES
   (6, 6, 57, 38, 'Piazza delle Erbe 5',   'Verona',  '37121', 'VR'),
   (7, 7, 87, 35, 'Via Etnea 102',         'Catania', '95124', 'CT'),
   (8, 2, 15, 30, 'Corso Vittorio Emanuele 40', 'Torino', '10123', 'TO'),
-  (9, 8, 4,  28, 'Via Toledo 77',         'Napoli',  '80134', 'NA');
+  (9, 8, 4,  28, 'Via Toledo 77',         'Napoli',  '80134', 'NA'),
+  (10, 9,  134, 26, 'Via Maqueda 150',      'Palermo', '90133', 'PA'),
+  (11, 10, 110, 24, 'Via Sparano 18',       'Bari',    '70121', 'BA'),
+  (12, 11, 148, 22, 'Via Mazzini 9',        'Trieste', '34121', 'TS'),
+  (13, 12, 138, 19, 'Via dei Calzaiuoli 31', 'Firenze', '50122', 'FI'),
+  (14, 13, 98,  18, 'Via del Corso 210',    'Roma',    '00186', 'RM'),
+  (15, 14, 122, 16, 'Corso Garibaldi 64',   'Ancona',  '60121', 'AN'),
+  (16, 9,  142, 14, 'Via Maqueda 150',      'Palermo', '90133', 'PA'),
+  (17, 3,  96,  12, 'Via dei Mille 8',      'Napoli',  '80121', 'NA'),
+  (18, 5,  123, 10, 'Via Garibaldi 3',      'Genova',  '16124', 'GE'),
+  (19, 12, 140, 9,  'Via dei Calzaiuoli 31', 'Firenze', '50122', 'FI'),
+  (20, 10, 135, 6,  'Via Sparano 18',       'Bari',    '70121', 'BA'),
+  (21, 1,  119, 5,  'Via Roma 12',          'Milano',  '20121', 'MI');
 
 INSERT INTO orders (id, user_id, total, status, paid_at, customer_name, customer_email, address, city, postal_code, province, created_at)
 SELECT pg_temp.seed_id('order', s.id), u.id, p.price, 'delivered', now() - s.days * interval '1 day',
@@ -413,5 +582,53 @@ FROM (VALUES
   (19, 1, 4, 'Cuffie chiuse comode anche dopo ore. Isolano bene, ottime per registrare.', 16),
   -- Stradivolt Fuzz Storm
   (88, 4, 5, 'Fuzz enorme e sporco, proprio quello che volevo per lo stoner. Le manopole hanno un''escursione utile.', 5),
-  (88, 7, 2, 'Troppo estremo per i miei gusti: anche al minimo è molto saturo.', 2)
+  (88, 7, 2, 'Troppo estremo per i miei gusti: anche al minimo è molto saturo.', 2),
+  -- Girasole Soprano Mogano
+  (134, 9, 5, 'Preso per curiosità, non lo mollo più. In una settimana suonavo già quattro canzoni.', 20),
+  (134, 2, 4, 'Suono allegro e finiture pulite. Le corde ci mettono qualche giorno a tenere l''accordatura, è normale.', 11),
+  (134, 14, 5, '', 4),
+  -- Aurora Slim 88
+  (110, 10, 5, 'Sta sulla scrivania e la sera lo infilo sotto il letto. I tasti pesati sono migliori di quanto mi aspettassi a questo prezzo.', 18),
+  (110, 7, 4, 'Ottimo tocco e Bluetooth comodo per le basi. Il pedale incluso è piccolo e scivola, meglio prenderne uno serio.', 8),
+  -- Pulse Mix 12 FX
+  (148, 11, 4, 'Lo usiamo in sala prove con la band: canali a sufficienza e riverberi più che dignitosi. I potenziometri sono un po'' vicini tra loro.', 15),
+  (148, 6, 5, 'Registro le prove via USB senza altri apparecchi. Per quello che costa fa tantissimo.', 5),
+  -- Pulse Keys 25 Mini
+  (138, 12, 5, 'Vive nello zaino insieme al portatile. I pad rispondono bene e le manopole si mappano in un attimo.', 14),
+  (138, 5, 3, 'Comodo da portare in giro, ma i mini tasti sono davvero mini: per suonare parti di piano serve altro.', 6),
+  -- Nordwood JB Deluxe
+  (98, 13, 5, 'Manico velocissimo e il pickup al ponte ha quel suono nasale perfetto per il funk. Arrivato con un''ottima regolazione.', 12),
+  (98, 2, 4, 'Versatile e ben costruito. Con un solo pickup aperto c''è un leggero ronzio, tipico dei single coil.', 3),
+  -- Orfeo Acustico 60
+  (122, 14, 5, 'Chitarra e voce in un unico amplificatore: ci faccio le serate nei locali senza portarmi dietro l''impianto.', 10),
+  -- Fermata Stand Chitarra A
+  (142, 9, 4, 'Semplice e stabile. Lo uso anche per l''ukulele, stringendo un po'' i bracci.', 9),
+  (142, 1, 5, '', 2),
+  (142, 13, 2, 'Fa il suo lavoro, ma uno dei gommini si è staccato dopo pochi giorni.', 1),
+  -- Vesuvio Elettrificata CE-60
+  (96, 3, 5, 'Amplificata mantiene il suono caldo del nylon, senza quell''effetto plastica di tante elettrificate. L''accordatore integrato è comodissimo.', 7),
+  -- Stradivolt Blaze 40 Modeling
+  (123, 5, 4, 'Tantissimi suoni e la registrazione via USB funziona al primo colpo. Il menu richiede un po'' di pazienza.', 6),
+  (123, 8, 3, 'I puliti sono belli, le distorsioni più spinte suonano un po'' finte. Per studiare in casa va benissimo.', 2),
+  -- Pulse Pad 16
+  (140, 12, 4, 'Pad sensibili e colori utili per orientarsi. Avrei gradito un cavo USB più lungo.', 5),
+  -- Girasole Concerto Koa
+  (135, 10, 5, 'Il legno è bellissimo, dal vivo ancora più che in foto. Rispetto al soprano ha molto più corpo.', 3),
+  -- Pulse Monitor H20
+  (119, 1, 3, 'Per studiare con la tastiera vanno bene. Il suono è un po'' chiuso, ma a questo prezzo non pretendo di più.', 2),
+  (119, 11, 4, 'Leggere e con il cavo lungo: perfette per la batteria elettronica di mia figlia.', 1),
+  -- Kestrel Cajon Studio
+  (42, 13, 5, 'Basso profondo e cordiera che si regola davvero. Lo porto a tutte le serate acustiche.', 23),
+  (42, 10, 4, 'Bel suono e costruzione solida. Consiglio un cuscino: dopo un''ora la seduta si fa sentire.', 9),
+  -- Stradivolt Overdrive Red
+  (59, 14, 5, 'Sempre acceso davanti al mio valvolare: aggiunge spinta senza cambiare il carattere della chitarra.', 19),
+  (59, 6, 4, 'Caldo e dinamico. Con il gain oltre metà diventa un po'' scuro, basta alzare il tono.', 12),
+  (59, 11, 1, 'Il mio esemplare aveva l''interruttore difettoso e si spegneva da solo. Ho chiesto il reso.', 3),
+  -- Pulse Podcast USB
+  (51, 12, 5, 'Collegato e pronto in un minuto. La voce esce piena e il rumore della ventola del computer quasi non si sente.', 16),
+  (51, 9, 4, '', 7),
+  -- Vesuvio Studio 1/2
+  (7, 11, 5, 'Misura giusta per mia figlia di sei anni, che finalmente arriva a tutti i tasti. Tiene bene l''accordatura.', 13),
+  -- Aurora Portable 61
+  (14, 14, 4, 'Tanti suoni e accompagnamenti divertenti. I tasti sono leggeri, ma per iniziare è perfetta.', 8)
 ) AS v(product_id, user_id, rating, comment, days);

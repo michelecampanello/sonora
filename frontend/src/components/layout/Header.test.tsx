@@ -53,6 +53,21 @@ describe("menu dell'account", () => {
     ])
   })
 
+  it("agli admin mostra anche la Dashboard, in cima al menu", async () => {
+    setUser({ ...giulia, role: "admin" })
+    const { user } = renderHeader()
+
+    await user.click(screen.getByRole("button", { name: /Il mio account/ }))
+    const menu = await screen.findByRole("menu")
+
+    const links = within(menu)
+      .getAllByRole("menuitem")
+      .filter((item) => item.tagName === "A")
+    expect(links[0]).toHaveTextContent("Dashboard")
+    expect(links[0]).toHaveAttribute("href", "/admin")
+    expect(links).toHaveLength(4)
+  })
+
   it("saluta per nome nell'header, con le iniziali accanto", () => {
     setUser(giulia)
     renderHeader()
