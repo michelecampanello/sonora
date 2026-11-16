@@ -1,0 +1,82 @@
+# Controlla backend e frontend a ogni push su main e a ogni pull request.
+# I due job partono in parallelo: se uno fallisce, l'altro arriva comunque in fondo.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Un nuovo push sullo stesso branch annulla il controllo ancora in corso, che ormai è superato
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+
+    # Il database dei test: globalSetup lo crea e lo riempie con schema.sql e seed.sql
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # Il nome deve finire con _test (vedi tests/testDatabaseUrl.ts)
+      TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/sonora_test
+
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - name: Controllo dei tipi
+        run: npm run typecheck
+      - name: Build
+        run: npm run build
+      - name: Test
+        run: npm test
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Test
+        run: npm test
+      # tsc -b controlla anche i tipi, prima di vite build
+      - name: Build
+        run: npm run build
