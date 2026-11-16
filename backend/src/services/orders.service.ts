@@ -1,3 +1,4 @@
+import type { PoolClient } from "pg";
 import { pool } from "../db.js";
 import type {
   OrderConfirmation,
@@ -8,6 +9,7 @@ import type {
   OrderStatus,
   OrderSummary,
   Paginated,
+  PaymentMethod,
 } from "../types.js";
 
 const ORDERS_PER_PAGE = 10;
@@ -47,6 +49,8 @@ async function findOrder(orderId: string, ownerId: string | null): Promise<Order
     status: OrderStatus;
     total: string;
     created_at: Date;
+    payment_method: PaymentMethod;
+    paid_at: Date | null;
     customer_name: string;
     customer_email: string;
     address: string;
@@ -54,7 +58,7 @@ async function findOrder(orderId: string, ownerId: string | null): Promise<Order
     postal_code: string;
     province: string;
   }>(
-    `SELECT id, status, total, created_at, customer_name, customer_email, address, city, postal_code, province
+    `SELECT id, status, total, created_at, payment_method, paid_at, customer_name, customer_email, address, city, postal_code, province
      FROM orders WHERE id = $1 AND ($2::uuid IS NULL OR user_id = $2)`,
     [orderId, ownerId],
   );
@@ -79,6 +83,8 @@ async function findOrder(orderId: string, ownerId: string | null): Promise<Order
     status: order.status,
     total: order.total,
     created_at: order.created_at,
+    payment_method: order.payment_method,
+    paid_at: order.paid_at,
     customer: {
       name: order.customer_name,
       email: order.customer_email,
@@ -105,12 +111,15 @@ export class InsufficientStockError extends Error {
 
 /**
  * Crea un ordine e scala il magazzino, in un'unica transazione. userId è null per gli ospiti.
+ * Con la carta l'ordine nasce "awaiting_payment": i pezzi restano riservati finché il cliente
+ * paga su Stripe, o finché la pagina di pagamento scade e l'ordine si annulla.
  * Lancia InsufficientStockError se qualche articolo non è disponibile.
  */
 export async function createOrder(
   customer: OrderCustomer,
   lines: CartLine[],
   userId: string | null,
+  paymentMethod: PaymentMethod = "cod",
 ): Promise<OrderConfirmation> {
   const client = await pool.connect();
   try {
@@ -156,12 +165,14 @@ export async function createOrder(
 
     const total = (totalCents / 100).toFixed(2);
     const orderResult = await client.query<{ id: string }>(
-      `INSERT INTO orders (user_id, total, customer_name, customer_email, address, city, postal_code, province)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `INSERT INTO orders (user_id, total, payment_method, status, customer_name, customer_email, address, city, postal_code, province)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING id`,
       [
         userId,
         total,
+        paymentMethod,
+        paymentMethod === "card" ? "awaiting_payment" : "pending",
         customer.name,
         customer.email,
         customer.address,
@@ -184,7 +195,153 @@ export async function createOrder(
     }
 
     await client.query("COMMIT");
-    return { id, total, customer, items };
+    return { id, total, payment_method: paymentMethod, customer, items };
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+/** Annulla un ordine e rimette i suoi pezzi in magazzino. Va chiamata dentro una transazione, con l'ordine bloccato. */
+export async function cancelAndRestock(client: PoolClient, orderId: string): Promise<void> {
+  await client.query("UPDATE orders SET status = 'cancelled' WHERE id = $1", [orderId]);
+  await client.query(
+    `UPDATE products p SET stock = p.stock + i.quantity
+     FROM order_items i
+     WHERE i.order_id = $1 AND i.product_id = p.id`,
+    [orderId],
+  );
+}
+
+/** Collega a un ordine con carta la sessione di Stripe Checkout appena creata */
+export async function setCheckoutSession(orderId: string, sessionId: string): Promise<void> {
+  await pool.query("UPDATE orders SET stripe_session_id = $2 WHERE id = $1", [orderId, sessionId]);
+}
+
+/** Un ordine con carta e lo stato del suo pagamento, come lo vede il cliente che torna da Stripe */
+export interface CardOrder {
+  order: OrderConfirmation;
+  status: OrderStatus;
+  paid: boolean;
+  userId: string | null;
+  sessionId: string | null;
+  paymentIntentId: string | null;
+}
+
+async function loadCardOrder(db: Pick<PoolClient, "query">, where: string, value: string, lock = false): Promise<CardOrder | null> {
+  const { rows } = await db.query<{
+    id: string;
+    total: string;
+    status: OrderStatus;
+    paid_at: Date | null;
+    user_id: string | null;
+    stripe_session_id: string | null;
+    stripe_payment_intent_id: string | null;
+    customer_name: string;
+    customer_email: string;
+    address: string;
+    city: string;
+    postal_code: string;
+    province: string;
+  }>(
+    `SELECT id, total, status, paid_at, user_id, stripe_session_id, stripe_payment_intent_id,
+       customer_name, customer_email, address, city, postal_code, province
+     FROM orders WHERE ${where} = $1 AND payment_method = 'card'${lock ? " FOR UPDATE" : ""}`,
+    [value],
+  );
+  const row = rows[0];
+  if (!row) return null;
+
+  const items = await db.query<OrderItem>(
+    `SELECT i.product_id, p.name, i.quantity, i.unit_price
+     FROM order_items i JOIN products p ON p.id = i.product_id
+     WHERE i.order_id = $1 ORDER BY p.name`,
+    [row.id],
+  );
+  return {
+    order: {
+      id: row.id,
+      total: row.total,
+      payment_method: "card",
+      customer: {
+        name: row.customer_name,
+        email: row.customer_email,
+        address: row.address,
+        city: row.city,
+        postal_code: row.postal_code,
+        province: row.province,
+      },
+      items: items.rows,
+    },
+    status: row.status,
+    paid: row.paid_at !== null,
+    userId: row.user_id,
+    sessionId: row.stripe_session_id,
+    paymentIntentId: row.stripe_payment_intent_id,
+  };
+}
+
+export const findCardOrder = (orderId: string): Promise<CardOrder | null> => loadCardOrder(pool, "id", orderId);
+export const findCardOrderBySession = (sessionId: string): Promise<CardOrder | null> =>
+  loadCardOrder(pool, "stripe_session_id", sessionId);
+
+/** Cosa è cambiato aggiornando un ordine con lo stato della sua sessione di Stripe */
+export type PaymentOutcome =
+  /** Il pagamento è appena arrivato: l'ordine passa in lavorazione */
+  | "paid"
+  /** La pagina di pagamento è scaduta senza pagamento: ordine annullato, pezzi tornati in magazzino */
+  | "cancelled"
+  /** Pagato un ordine già annullato: i soldi vanno restituiti */
+  | "refund_needed"
+  /** Niente di nuovo, es. Stripe ha mandato di nuovo la stessa notifica */
+  | "unchanged";
+
+/**
+ * Aggiorna un ordine con lo stato della sua sessione di Stripe Checkout. Si può chiamare più volte con la
+ * stessa sessione (Stripe a volte ripete le notifiche, e anche la pagina di conferma la controlla):
+ * ogni cambiamento avviene una volta sola. Restituisce null se la sessione non appartiene a nessun ordine.
+ */
+export async function applyCheckoutSession(session: {
+  id: string;
+  status: string;
+  paymentStatus: string;
+  paymentIntentId: string | null;
+}): Promise<{ outcome: PaymentOutcome; order: CardOrder } | null> {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    // FOR UPDATE: la notifica di Stripe e il ritorno del cliente possono arrivare insieme
+    const order = await loadCardOrder(client, "stripe_session_id", session.id, true);
+    if (!order) {
+      await client.query("ROLLBACK");
+      return null;
+    }
+
+    let outcome: PaymentOutcome = "unchanged";
+    if (session.paymentStatus === "paid" && !order.paid) {
+      await client.query("UPDATE orders SET paid_at = now(), stripe_payment_intent_id = $2 WHERE id = $1", [
+        order.order.id,
+        session.paymentIntentId,
+      ]);
+      if (order.status === "awaiting_payment") {
+        await client.query("UPDATE orders SET status = 'pending' WHERE id = $1", [order.order.id]);
+        outcome = "paid";
+        order.status = "pending";
+      } else {
+        outcome = "refund_needed";
+      }
+      order.paid = true;
+      order.paymentIntentId = session.paymentIntentId;
+    } else if (session.status === "expired" && order.status === "awaiting_payment") {
+      await cancelAndRestock(client, order.order.id);
+      outcome = "cancelled";
+      order.status = "cancelled";
+    }
+
+    await client.query("COMMIT");
+    return { outcome, order };
   } catch (err) {
     await client.query("ROLLBACK");
     throw err;

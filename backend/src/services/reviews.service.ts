@@ -9,7 +9,7 @@ const REVIEW_COLUMNS = `
   btrim(u.first_name || ' ' || CASE WHEN u.last_name <> '' THEN left(u.last_name, 1) || '.' ELSE '' END) AS author,
   EXISTS (
     SELECT 1 FROM order_items i JOIN orders o ON o.id = i.order_id
-    WHERE o.user_id = r.user_id AND i.product_id = r.product_id AND o.status <> 'cancelled'
+    WHERE o.user_id = r.user_id AND i.product_id = r.product_id AND o.status NOT IN ('cancelled', 'awaiting_payment')
   ) AS verified`;
 
 /** L'id di un prodotto in vendita, oppure null: i prodotti nascosti non si recensiscono */

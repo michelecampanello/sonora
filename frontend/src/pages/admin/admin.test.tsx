@@ -33,7 +33,7 @@ describe("accesso al pannello", () => {
     setUser(admin);
     mockApi({
       "GET /api/admin/stats": {
-        body: { orders: { pending: 4, shipped: 2, paid: 9, cancelled: 1 }, revenue: "1290.00", activeProducts: 50, lowStockProducts: 3 },
+        body: { orders: { awaiting_payment: 0, pending: 4, shipped: 2, delivered: 9, cancelled: 1 }, revenue: "1290.00", activeProducts: 50, lowStockProducts: 3 },
       },
     });
     renderAdmin("/admin");
@@ -51,6 +51,8 @@ describe("dettaglio ordine", () => {
     status: "pending",
     total: "80.00",
     created_at: "2026-11-10T10:00:00Z",
+    payment_method: "cod",
+    paid_at: null,
     customer: { name: "Mario Rossi", email: "mario@example.com", address: "Via Roma 1", city: "Milano", postal_code: "20100", province: "MI" },
     items: [{ product_id: "p1", name: "Cavo jack", slug: "cavo-jack", image_url: null, quantity: 2, unit_price: "40.00" }],
     next_statuses: ["shipped", "cancelled"],
@@ -60,7 +62,7 @@ describe("dettaglio ordine", () => {
     setUser(admin);
     const fetchMock = mockApi({
       [`GET /api/admin/orders/${ORDER_ID}`]: { body: order },
-      [`PATCH /api/admin/orders/${ORDER_ID}/status`]: { body: { ...order, status: "shipped", next_statuses: ["paid", "cancelled"] } },
+      [`PATCH /api/admin/orders/${ORDER_ID}/status`]: { body: { ...order, status: "shipped", next_statuses: ["delivered", "cancelled"] } },
     });
     const { user } = renderAdmin(`/admin/ordini/${ORDER_ID}`);
 
@@ -94,7 +96,7 @@ describe("dettaglio ordine", () => {
     setUser(admin);
     mockApi({
       [`GET /api/admin/orders/${ORDER_ID}`]: { body: order },
-      [`PATCH /api/admin/orders/${ORDER_ID}/status`]: { status: 409, body: { error: 'Un ordine "paid" non può passare a "shipped"' } },
+      [`PATCH /api/admin/orders/${ORDER_ID}/status`]: { status: 409, body: { error: 'Un ordine "delivered" non può passare a "shipped"' } },
     });
     const { user } = renderAdmin(`/admin/ordini/${ORDER_ID}`);
 

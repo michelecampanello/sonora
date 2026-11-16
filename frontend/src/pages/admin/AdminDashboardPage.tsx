@@ -28,8 +28,8 @@ export function AdminDashboardPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatTile label="Da spedire" value={stats.orders.pending} to="/admin/ordini?status=pending" hint="Ordini in lavorazione" />
-          <StatTile label="In consegna" value={stats.orders.shipped} to="/admin/ordini?status=shipped" hint="Da incassare alla consegna" />
-          <StatTile label="Incassato" value={formatPrice(stats.revenue)} to="/admin/ordini?status=paid" hint={`${stats.orders.paid} ordini pagati`} />
+          <StatTile label="In consegna" value={stats.orders.shipped} to="/admin/ordini?status=shipped" hint="Ordini spediti, in viaggio" />
+          <StatTile label="Incassato" value={formatPrice(stats.revenue)} to="/admin/ordini" hint="Pagamenti ricevuti, con carta o alla consegna" />
           <StatTile
             label="Quasi esauriti"
             value={stats.lowStockProducts}

@@ -2,9 +2,10 @@ import { cn } from "@/lib/utils";
 import type { OrderStatus } from "@/lib/types";
 
 const STATUS: Record<OrderStatus, [label: string, led: string]> = {
+  awaiting_payment: ["In attesa di pagamento", "bg-muted-foreground"],
   pending: ["In lavorazione", "bg-signal"],
-  paid: ["Pagato", "bg-led-ok"],
   shipped: ["Spedito", "bg-primary"],
+  delivered: ["Consegnato", "bg-led-ok"],
   cancelled: ["Annullato", "bg-destructive"],
 };
 

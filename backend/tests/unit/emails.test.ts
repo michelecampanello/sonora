@@ -7,6 +7,7 @@ import type { OrderConfirmation } from "../../src/types.js";
 const ORDER: OrderConfirmation = {
   id: "3f2a9c1e-7a8d-4b5e-9f3a-2c1d0e9f8a7b",
   total: "1300.10",
+  payment_method: "cod",
   customer: {
     name: "Mario Rossi",
     email: "mario.rossi@example.com",

@@ -81,19 +81,21 @@ describe("ordini", () => {
     expect(res.body.items).toEqual([expect.objectContaining({ product_id: product.id, quantity: 2 })]);
   });
 
-  it("segue il percorso in lavorazione → spedito → pagato", async () => {
+  it("segue il percorso in lavorazione → spedito → consegnato, e il contrassegno risulta pagato alla consegna", async () => {
     const { orderId } = await placeOrder();
     const shipped = await setStatus(orderId, "shipped").expect(200);
-    expect(shipped.body).toMatchObject({ status: "shipped", next_statuses: ["paid", "cancelled"] });
-    expect((await setStatus(orderId, "paid").expect(200)).body.status).toBe("paid");
+    expect(shipped.body).toMatchObject({ status: "shipped", next_statuses: ["delivered", "cancelled"] });
+    expect((await admin.get(`/api/admin/orders/${orderId}`).expect(200)).body.paid_at).toBeNull();
+    expect((await setStatus(orderId, "delivered").expect(200)).body.status).toBe("delivered");
 
     const detail = await admin.get(`/api/admin/orders/${orderId}`).expect(200);
-    expect(detail.body.next_statuses).toEqual([]);
+    expect(detail.body).toMatchObject({ payment_method: "cod", next_statuses: [] });
+    expect(detail.body.paid_at).not.toBeNull();
   });
 
   it.each([
-    ["pending", "paid", "non si incassa prima della consegna"],
-    ["paid", "cancelled", "un ordine pagato è definitivo"],
+    ["pending", "delivered", "non si consegna prima di spedire"],
+    ["delivered", "cancelled", "un ordine consegnato è definitivo"],
     ["cancelled", "pending", "un ordine annullato non si riapre"],
     ["shipped", "pending", "non si torna indietro"],
   ] as const)("rifiuta %s → %s: %s", async (from, to, _reason) => {
@@ -101,7 +103,7 @@ describe("ordini", () => {
     const path: Record<string, string[]> = {
       pending: [],
       shipped: ["shipped"],
-      paid: ["shipped", "paid"],
+      delivered: ["shipped", "delivered"],
       cancelled: ["cancelled"],
     };
     for (const step of path[from]!) await setStatus(orderId, step).expect(200);
@@ -198,11 +200,11 @@ describe("statistiche", () => {
 
     const paid = await placeOrder(2); // 2 × 40 € = 80 €
     await setStatus(paid.orderId, "shipped").expect(200);
-    await setStatus(paid.orderId, "paid").expect(200);
+    await setStatus(paid.orderId, "delivered").expect(200);
     await placeOrder(1); // resta in lavorazione: non è ancora incassato
 
     const after = (await admin.get("/api/admin/stats").expect(200)).body;
-    expect(after.orders.paid - before.orders.paid).toBe(1);
+    expect(after.orders.delivered - before.orders.delivered).toBe(1);
     expect(after.orders.pending - before.orders.pending).toBe(1);
     expect(Number(after.revenue) - Number(before.revenue)).toBeCloseTo(80, 2);
     expect(after.activeProducts - before.activeProducts).toBe(2);

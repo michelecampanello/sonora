@@ -21,7 +21,7 @@ export function renderPage(page: ReactElement, { path = "/", url = path, state }
     user: userEvent.setup(),
     ...render(
       <ThemeProvider storageKey={THEME_STORAGE_KEY}>
-        <MemoryRouter initialEntries={[{ pathname: url, state }]}>
+        <MemoryRouter initialEntries={[{ pathname: url.split("?")[0], search: url.includes("?") ? `?${url.split("?")[1]}` : "", state }]}>
           <Routes>
             <Route path={path} element={page} />
             <Route path="*" element={null} />

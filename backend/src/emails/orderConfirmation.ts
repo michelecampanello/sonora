@@ -16,6 +16,12 @@ import {
 const lineTotal = (unitPrice: string, quantity: number): string =>
   ((Math.round(Number(unitPrice) * 100) * quantity) / 100).toFixed(2);
 
+/** Come si paga, in una riga */
+const PAYMENT_NOTE = {
+  cod: "Alla consegna: paghi il corriere quando ricevi il pacco.",
+  card: "Con carta: pagamento ricevuto.",
+} as const;
+
 /** orderLink: la pagina dell'ordine nell'area personale; null per chi ha comprato senza account */
 export function orderConfirmationEmail(order: OrderConfirmation, orderLink: string | null): EmailContent {
   const code = orderCode(order.id);
@@ -43,6 +49,8 @@ export function orderConfirmationEmail(order: OrderConfirmation, orderLink: stri
           </table>`,
       paragraph("Spedizione a", `font-size:13px;margin:0 0 4px;color:${MUTED}`),
       paragraph(addressLines.map(escapeHtml).join("<br>"), "font-size:15px;margin:0 0 24px"),
+      paragraph("Pagamento", `font-size:13px;margin:0 0 4px;color:${MUTED}`),
+      paragraph(PAYMENT_NOTE[order.payment_method], "font-size:15px;margin:0 0 24px"),
       orderLink ? button(orderLink, "Segui l'ordine") : "",
     ].join("\n          "),
     PORTFOLIO_NOTE,
@@ -56,6 +64,8 @@ export function orderConfirmationEmail(order: OrderConfirmation, orderLink: stri
     "",
     "Spedizione a:",
     ...addressLines,
+    "",
+    `Pagamento: ${PAYMENT_NOTE[order.payment_method]}`,
     ...(orderLink ? ["", "Segui l'ordine:", orderLink] : []),
     "",
     PORTFOLIO_NOTE,

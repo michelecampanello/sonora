@@ -11,7 +11,7 @@ Progetto full stack in TypeScript: React (frontend) + Node.js/Express (backend) 
 - **Catalogo**: categorie e sottocategorie, ricerca che tollera gli errori di battitura, filtri per marca, prezzo e disponibilità, ordinamento e paginazione. Le foto dei prodotti arrivano da Cloudinary, ridimensionate per ogni schermo.
 - **Scheda prodotto**: galleria, caratteristiche tecniche, disponibilità, recensioni con media e voti per stella.
 - **Recensioni**: voto da 1 a 5 e commento facoltativo, una per persona e prodotto; badge "Acquisto verificato" per chi l'ha comprato.
-- **Carrello e checkout**: carrello salvato nel browser, ordine anche senza account, pagamento alla consegna, email di conferma.
+- **Carrello e checkout**: carrello salvato nel browser, ordine anche senza account, pagamento con carta su Stripe Checkout (in modalità test) o alla consegna, email di conferma.
 - **Account**: registrazione con email di benvenuto, accesso, reset della password via email, ordini, indirizzi salvati, nome e cognome, tema chiaro o scuro.
 - **Pannello admin**: dashboard, ordini con i loro stati, prodotti con caratteristiche e foto caricate su Cloudinary, modifica di un prodotto anche direttamente dalla sua pagina nel negozio, moderazione delle recensioni.
 
@@ -52,7 +52,18 @@ npm run dev
 
 Il server parte su `http://localhost:3000`. Prova: `http://localhost:3000/api/health`
 
-Le altre variabili di `backend/.env` sono facoltative in sviluppo: `RESEND_API_KEY` e `MAIL_FROM` per inviare davvero le email (senza, la console dice quale sarebbe partita), `CLOUDINARY_URL` per caricare le foto dal pannello admin. Le immagini dei dati di prova sono già su Cloudinary e si vedono anche senza.
+Le altre variabili di `backend/.env` sono facoltative in sviluppo: `RESEND_API_KEY` e `MAIL_FROM` per inviare davvero le email (senza, la console dice quale sarebbe partita), `CLOUDINARY_URL` per caricare le foto dal pannello admin, `STRIPE_SECRET_KEY` e `STRIPE_WEBHOOK_SECRET` per il pagamento con carta (vedi [Pagamenti con Stripe](#pagamenti-con-stripe)). Le immagini dei dati di prova sono già su Cloudinary e si vedono anche senza.
+
+### Pagamenti con Stripe
+
+Senza le chiavi di Stripe il checkout propone solo il pagamento alla consegna. Per provare la carta in locale:
+
+1. Crea un account su [stripe.com](https://dashboard.stripe.com/register) e resta in **modalità test**: nessun pagamento è reale.
+2. Copia la *Secret key* (`sk_test_…`) da [Developers → API keys](https://dashboard.stripe.com/test/apikeys) in `STRIPE_SECRET_KEY` di `backend/.env`.
+3. Installa la [Stripe CLI](https://docs.stripe.com/stripe-cli), poi lancia `stripe login` e `stripe listen --forward-to localhost:3000/api/stripe/webhook`. Il comando stampa un segreto `whsec_…`: mettilo in `STRIPE_WEBHOOK_SECRET` e riavvia il backend. Tieni aperto il terminale con `stripe listen` mentre provi.
+4. Al checkout scegli *Carta* e paga con `4242 4242 4242 4242`, una scadenza futura e un CVC qualsiasi. Altre carte di prova (rifiutate, con 3D Secure…) sono nella [documentazione](https://docs.stripe.com/testing).
+
+Anche senza `stripe listen` l'ordine risulta pagato: la pagina di conferma chiede lo stato a Stripe quando il cliente torna sul sito. Il webhook serve per i casi in cui il cliente chiude la pagina prima di tornare, e per annullare gli ordini quando la pagina di pagamento scade.
 
 Per diventare amministratore registrati dal sito e poi lancia `npm run make-admin -- tua@email.it`.
 
@@ -160,6 +171,8 @@ Nelle impostazioni del progetto (*Settings → Environment Variables*) aggiungi:
 | `RESEND_API_KEY` | Chiave di [Resend](https://resend.com/api-keys) |
 | `MAIL_FROM` | Mittente con un dominio verificato su Resend, es. `Sonora <noreply@tuodominio.it>` |
 | `CLOUDINARY_URL` | Da [console.cloudinary.com](https://console.cloudinary.com), alla voce *API Keys* |
+| `STRIPE_SECRET_KEY` | Facoltativa, per il pagamento con carta: la *Secret key* di [Stripe](https://dashboard.stripe.com/test/apikeys), `sk_test_…` in modalità test |
+| `STRIPE_WEBHOOK_SECRET` | Il *Signing secret* (`whsec_…`) del webhook, vedi sotto |
 | `FRONTEND_ORIGIN` | Facoltativa: l'indirizzo del sito per i link nelle email. Se manca si usa il dominio di produzione del progetto Vercel |
 
 Non impostare `NODE_ENV`: Vercel lo mette già a `production` nelle funzioni, e impostato a mano durante l'installazione salterebbe gli strumenti di build. `VITE_API_URL` non serve, perché l'API è sullo stesso dominio.
@@ -170,6 +183,8 @@ In produzione il backend non parte senza `RESEND_API_KEY` e `MAIL_FROM`: senza l
 
 - Registrati dal sito e diventa amministratore lanciando dal tuo computer `DATABASE_URL="postgres://…" npm run make-admin -- tua@email.it` in `backend/`.
 - Prova `https://<tuo-sito>/api/health`: deve rispondere `{"status":"ok"}`.
+- Per il pagamento con carta, su Stripe apri [Developers → Webhooks](https://dashboard.stripe.com/test/webhooks) e aggiungi un endpoint `https://<tuo-sito>/api/stripe/webhook` con gli eventi `checkout.session.completed`, `checkout.session.async_payment_succeeded` e `checkout.session.expired`. Copia il suo *Signing secret* in `STRIPE_WEBHOOK_SECRET` su Vercel e ripubblica.
+- Aggiornando un database esistente lancia le migrazioni: la `008` aggiunge il metodo di pagamento e rinomina lo stato *pagato* in *consegnato*.
 
 ### Cosa cambia rispetto al server locale
 
@@ -190,7 +205,11 @@ In produzione il backend non parte senza `RESEND_API_KEY` e `MAIL_FROM`: senza l
 | GET | `/api/categories` | Categorie con sottocategorie |
 | GET | `/api/brands` | Elenco marche |
 | GET | `/api/brands/:slug/products` | Prodotti di una marca |
-| POST | `/api/orders` | Crea un ordine, collegato all'utente se ha fatto l'accesso, e scala il magazzino |
+| POST | `/api/orders` | Crea un ordine, collegato all'utente se ha fatto l'accesso, e scala il magazzino. `payment_method`: `cod` (alla consegna, predefinito) o `card`; con la carta risponde anche con `checkout_url`, la pagina di Stripe |
+| GET | `/api/orders/payment-options` | `{ card: true }` se il pagamento con carta è configurato |
+| GET | `/api/orders/checkout/:sessionId` | L'ordine pagato con carta, per la pagina a cui Stripe rimanda il cliente; se il webhook non è arrivato chiede lo stato a Stripe |
+| POST | `/api/orders/:id/cancel-payment` | Il cliente è tornato da Stripe senza pagare: chiude la pagina di pagamento e annulla l'ordine |
+| POST | `/api/stripe/webhook` | Notifiche di Stripe (pagamento riuscito, pagina scaduta), con la firma verificata |
 | POST | `/api/auth/register` | Crea un account (`first_name`, `last_name`, `email`, `password`) e avvia la sessione |
 | POST | `/api/auth/login` | Avvia la sessione |
 | POST | `/api/auth/logout` | Chiude la sessione |
@@ -223,7 +242,7 @@ Tutte le rotte rispondono 401 senza sessione e 403 a chi non è amministratore.
 | DELETE | `/api/admin/reviews/:id` | Elimina una recensione qualsiasi (moderazione) |
 | POST | `/api/admin/uploads/signature` | Firma il caricamento di una foto su Cloudinary; 503 se `CLOUDINARY_URL` manca |
 
-Il pagamento avviene alla consegna, quindi un ordine passa da *in lavorazione* a *spedito* e poi a *pagato*. Si può annullare finché non è pagato. I prodotti non si eliminano, perché gli ordini fanno riferimento a loro: per toglierli dal negozio si nascondono.
+Un ordine passa da *in lavorazione* a *spedito* e poi a *consegnato*, e si può annullare finché non è consegnato. Il pagamento è a parte: con la carta arriva prima (l'ordine nasce *in attesa di pagamento* e lo cambia solo Stripe), con il contrassegno alla consegna. Annullando un ordine già pagato con carta, il pagamento viene rimborsato su Stripe. I prodotti non si eliminano, perché gli ordini fanno riferimento a loro: per toglierli dal negozio si nascondono.
 
 ### Filtri di `/api/products`
 
@@ -252,6 +271,7 @@ Esempio: `/api/products?category=chitarre&maxPrice=400&sort=price_asc`
   Configurazione in `backend/.env`: `RESEND_API_KEY` (da [resend.com/api-keys](https://resend.com/api-keys)) e `MAIL_FROM`, un mittente con un dominio verificato su Resend. In sviluppo, senza `MAIL_FROM` si usa l'indirizzo di prova `onboarding@resend.dev`; senza `RESEND_API_KEY` nessuna email parte e la console del backend dice quale sarebbe partita (per il reset, con il link). In produzione il server non parte se manca una delle due.
 - **Pannello admin nello stesso frontend**, sotto `/admin`: React.lazy lo mette in un file JavaScript separato, che chi compra non scarica. Il frontend nasconde il pannello a chi non è admin solo per comodità; a proteggere i dati è il backend, con il middleware `requireAdmin` su tutte le rotte `/api/admin`. Un admin si crea solo con `npm run make-admin`, mai da un'API.
 - **Foto dei prodotti su Cloudinary, caricate direttamente dal browser**: il backend firma soltanto la richiesta (SHA-1 dei parametri, come da [documentazione](https://cloudinary.com/documentation/authentication_signatures)), quindi il segreto API non arriva mai al browser e i file non passano dal nostro server. La firma fissa formati ammessi e cartella, e vale un'ora. Si configura con `CLOUDINARY_URL` in `backend/.env`; senza, le immagini si indicano con un indirizzo.
+- **Pagamento con carta su Stripe Checkout**: il cliente paga su una pagina di Stripe, quindi i dati della carta non passano mai dal nostro server, e 3D Secure, Apple Pay e Google Pay sono già gestiti. Gli importi vengono dai prezzi salvati nell'ordine, non dal browser. L'ordine nasce *in attesa di pagamento* con i pezzi già riservati: il webhook (con la firma verificata sul corpo grezzo della richiesta) lo mette in lavorazione quando arriva il pagamento, o lo annulla quando la pagina scade dopo 30 minuti. La stessa verifica parte quando il cliente torna sul sito, e ogni cambiamento avviene una volta sola anche se le notifiche si ripetono. Tutte le chiamate a Stripe sono in [`stripe.service.ts`](backend/src/services/stripe.service.ts), che i test sostituiscono con una versione finta.
   Di ogni foto caricata si salva il `public_id` restituito da Cloudinary. Quando una foto viene tolta da un prodotto, e nessun altro prodotto la usa, dopo il salvataggio viene cancellata da Cloudinary e dalla cache della CDN. Le immagini indicate con un indirizzo non vengono mai cancellate.
 - **Password con bcrypt e limite ai tentativi** su login e registrazione. Il limite è per indirizzo IP: su Vercel Express legge l'IP vero dall'header del proxy (`trust proxy`).
 - **TypeScript in modalità `strict`**, con i tipi delle risposte API raccolti in `src/types.ts` (riutilizzabili nel frontend).

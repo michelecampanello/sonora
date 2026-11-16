@@ -1,19 +1,22 @@
 import { pool } from "../db.js";
+import { cancelAndRestock } from "./orders.service.js";
+import { refundPayment } from "./stripe.service.js";
 import type { AdminOrderSummary, AdminStats, OrderStatus, Paginated } from "../types.js";
 
 const ORDERS_PER_PAGE = 20;
 export const LOW_STOCK_THRESHOLD = 5;
 
 /**
- * Gli stati in cui un ordine può passare. Il pagamento avviene alla consegna, quindi:
- * in lavorazione → spedito → pagato (consegnato). Si può annullare finché non è pagato:
- * dopo la spedizione vuol dire che il cliente ha rifiutato il pacco.
- * Pagato e annullato sono definitivi.
+ * Gli stati in cui un ordine può passare: in lavorazione → spedito → consegnato.
+ * Si può annullare finché non è consegnato: dopo la spedizione vuol dire che il cliente ha rifiutato il pacco.
+ * Un ordine in attesa del pagamento con carta lo cambia solo Stripe: si paga, o la pagina scade e si annulla.
+ * Consegnato e annullato sono definitivi.
  */
 const NEXT_STATUSES: Record<OrderStatus, readonly OrderStatus[]> = {
+  awaiting_payment: [],
   pending: ["shipped", "cancelled"],
-  shipped: ["paid", "cancelled"],
-  paid: [],
+  shipped: ["delivered", "cancelled"],
+  delivered: [],
   cancelled: [],
 };
 
@@ -49,7 +52,8 @@ export async function listAllOrders(status: OrderStatus | undefined, page: numbe
 }
 
 /**
- * Cambia lo stato di un ordine. Se viene annullato, i pezzi tornano in magazzino.
+ * Cambia lo stato di un ordine. Alla consegna il contrassegno risulta pagato.
+ * Se viene annullato, i pezzi tornano in magazzino e un pagamento con carta viene rimborsato su Stripe.
  * Restituisce null se l'ordine non esiste; lancia InvalidStatusChangeError se il passaggio non è ammesso.
  */
 export async function changeOrderStatus(orderId: string, next: OrderStatus): Promise<AdminOrderSummary | null> {
@@ -57,23 +61,31 @@ export async function changeOrderStatus(orderId: string, next: OrderStatus): Pro
   try {
     await client.query("BEGIN");
     // FOR UPDATE: due admin che annullano lo stesso ordine insieme non possono rimettere in magazzino due volte
-    const { rows } = await client.query<{ status: OrderStatus }>("SELECT status FROM orders WHERE id = $1 FOR UPDATE", [
-      orderId,
-    ]);
-    const current = rows[0]?.status;
+    const { rows } = await client.query<{
+      status: OrderStatus;
+      paid_at: Date | null;
+      stripe_payment_intent_id: string | null;
+    }>("SELECT status, paid_at, stripe_payment_intent_id FROM orders WHERE id = $1 FOR UPDATE", [orderId]);
+    const current = rows[0];
     if (!current) {
       await client.query("ROLLBACK");
       return null;
     }
-    if (!NEXT_STATUSES[current].includes(next)) throw new InvalidStatusChangeError(current, next);
+    if (!NEXT_STATUSES[current.status].includes(next)) throw new InvalidStatusChangeError(current.status, next);
 
-    await client.query("UPDATE orders SET status = $2 WHERE id = $1", [orderId, next]);
     if (next === "cancelled") {
+      await cancelAndRestock(client, orderId);
+      // Prima del COMMIT: se Stripe non rimborsa, l'ordine resta com'era e l'admin può riprovare.
+      // Riprovando, Stripe riconosce la richiesta e non rimborsa due volte.
+      if (current.paid_at && current.stripe_payment_intent_id) {
+        await refundPayment(current.stripe_payment_intent_id, orderId);
+      }
+    } else {
+      // Consegnato: per il contrassegno è anche il momento in cui arrivano i soldi
       await client.query(
-        `UPDATE products p SET stock = p.stock + i.quantity
-         FROM order_items i
-         WHERE i.order_id = $1 AND i.product_id = p.id`,
-        [orderId],
+        `UPDATE orders SET status = $2::varchar, paid_at = CASE WHEN $2::varchar = 'delivered' THEN COALESCE(paid_at, now()) ELSE paid_at END
+         WHERE id = $1`,
+        [orderId, next],
       );
     }
 
@@ -92,7 +104,9 @@ export async function changeOrderStatus(orderId: string, next: OrderStatus): Pro
 export async function getStats(): Promise<AdminStats> {
   const [byStatus, products] = await Promise.all([
     pool.query<{ status: OrderStatus; count: number; total: string }>(
-      "SELECT status, COUNT(*)::int AS count, COALESCE(SUM(total), 0)::text AS total FROM orders GROUP BY status",
+      `SELECT status, COUNT(*)::int AS count,
+         COALESCE(SUM(total) FILTER (WHERE paid_at IS NOT NULL), 0)::text AS total
+       FROM orders GROUP BY status`,
     ),
     pool.query<{ active: number; low_stock: number }>(
       `SELECT COUNT(*) FILTER (WHERE active)::int AS active,
@@ -102,12 +116,17 @@ export async function getStats(): Promise<AdminStats> {
     ),
   ]);
 
-  const orders: Record<OrderStatus, number> = { pending: 0, shipped: 0, paid: 0, cancelled: 0 };
-  for (const row of byStatus.rows) orders[row.status] = row.count;
+  const orders: Record<OrderStatus, number> = { awaiting_payment: 0, pending: 0, shipped: 0, delivered: 0, cancelled: 0 };
+  let revenueCents = 0;
+  for (const row of byStatus.rows) {
+    orders[row.status] = row.count;
+    // Gli ordini annullati dopo il pagamento sono stati rimborsati: non contano
+    if (row.status !== "cancelled") revenueCents += Math.round(Number(row.total) * 100);
+  }
 
   return {
     orders,
-    revenue: Number(byStatus.rows.find((row) => row.status === "paid")?.total ?? 0).toFixed(2),
+    revenue: (revenueCents / 100).toFixed(2),
     activeProducts: products.rows[0]!.active,
     lowStockProducts: products.rows[0]!.low_stock,
   };
