@@ -1,13 +1,30 @@
-import { Suspense } from "react";
-import { Link, Outlet } from "react-router";
+import { Suspense, useLayoutEffect } from "react";
+import { Link, Outlet, useLocation, useNavigationType } from "react-router";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Header } from "./Header";
 
 const FOOTER_LINK = "transition-colors hover:text-signal";
 
+/**
+ * Il router non tocca lo scroll: senza questo, aprendo un prodotto si atterrerebbe all'altezza a cui si era nel catalogo.
+ * Si riparte dall'alto a ogni nuova pagina, ma non con "indietro" del browser, che deve riportare dov'eri.
+ * Conta solo il percorso: cambiare filtri o ordinamento (la parte dopo "?") non fa saltare la pagina.
+ */
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  const navigationType = useNavigationType();
+
+  useLayoutEffect(() => {
+    if (navigationType !== "POP") window.scrollTo(0, 0);
+  }, [pathname, navigationType]);
+
+  return null;
+}
+
 export function Layout() {
   return (
     <div className="flex min-h-svh flex-col overflow-x-clip">
+      <ScrollToTop />
       <Header />
       <main className="mx-auto w-full max-w-[96rem] flex-1 px-4 py-8 md:px-8 md:py-12">
         {/* Mentre arriva il file di una pagina, l'header e il footer restano al loro posto */}
